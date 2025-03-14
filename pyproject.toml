@@ -1,0 +1,103 @@
+# Adapted from [microsoft/onnxruntime](https://github.com/microsoft/onnxruntime/blob/main/.lintrunner.toml)
+# and [pytorch/pytorch](https://github.com/pytorch/pytorch)
+
+[tool.mypy]
+follow_imports = "silent"
+strict_optional = true
+warn_return_any = true
+warn_no_return = true
+warn_redundant_casts = true
+warn_incomplete_stub = true
+check_untyped_defs = true
+# Allow bare generics like np.ndarray
+disallow_any_generics = false
+no_implicit_optional = true
+warn_unused_configs = true
+show_error_codes = true
+show_column_numbers = true
+ignore_missing_imports = true
+
+[tool.black]
+line-length = 88
+target-version = ["py37", "py38", "py39", "py310", "py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+skip_gitignore = true
+extra_standard_library = ["typing_extensions"]
+atomic = true
+indent = 4
+lines_after_imports = 2
+multi_line_output = 3
+include_trailing_comma = true
+combine_as_imports = true
+
+[tool.pydocstyle]
+convention = "google"
+
+[tool.pylint.messages_control]
+disable = [
+    "format",
+    "line-too-long",
+    "import-error",
+    "no-name-in-module",
+    "no-member",
+    "too-many-arguments",
+    "too-many-locals",
+    "too-few-public-methods",
+    "missing-docstring",
+    "fixme",
+]
+
+[tool.pyright]
+reportMissingImports = false
+
+[tool.ruff]
+target-version = "py38"
+
+[tool.ruff.lint]
+select = [
+    "B", # flake8-bugbear
+    "E", # pycodestyle
+    "F", # Pyflakes
+    "FURB", # refurb
+    "G", # flake8-logging-format
+    "ISC", # flake8-implicit-str-concat
+    "N", # pep8-naming
+    "NPY", # numpy
+    "PERF", # Perflint
+    "PIE", # flake8-pie
+    "PLC", # pylint conventions
+    "PLE", # pylint errors
+    "PLW", # pylint warnings
+    "PYI", # flake8-pyi
+    "RUF", # Ruff-specific rules
+    "SIM", # flake8-simplify
+    "SLOT", # flake8-slots
+    "T10", # flake8-debugger
+    "UP", # pyupgrade
+    "W", # pycodestyle
+    "YTT", # flake8-2020
+]
+# NOTE: Refrain from growing the ignore list unless for exceptional cases.
+# Always include a comment to explain why.
+ignore = [
+    "E501", # Line length controlled by black
+    "G004", # Logging with f-string
+    "N812", # Allow import torch.nn.functional as F
+    "N813", # Allow importing camelcase names in lowercase
+    "NPY002", # np.random.Generator may not always fit our use cases
+    "PERF203", # "try-except-in-loop" only affects Python <3.11, and the improvement is minor; can have false positives
+    "PYI041", # May create confusion
+    "PYI024", # May create confusion
+    "SIM102", # We don't perfer always combining if branches
+    "SIM103", # Do not collapse if-else
+    "SIM108", # We don't encourage ternary operators
+    "SIM114", # Don't combine if branches for debugability
+    "SIM116", # Don't use dict lookup to replace if-else
+]
+ignore-init-module-imports = true
+unfixable = [
+    "F401", # Unused imports
+]
