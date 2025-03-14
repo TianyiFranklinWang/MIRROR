@@ -776,6 +776,9 @@ class MIRROR(nn.Module):
         )
 
 
+# ===========================================
+#  MIRROR for Downstream Task
+# ===========================================
 class MIRRORClassifier(nn.Module):
     def __init__(
         self,
