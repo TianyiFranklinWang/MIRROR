@@ -1,0 +1,133 @@
+# This is a template configuration file.
+# Please replace placeholder values before use.
+
+# Dataset parameters
+wsi_feature_dir: <path_to_wsi_feature_dir>  # path to dataset (root dir)
+rna_feature_csv: <path_to_rna_feature_csv>  # path to omics csv file
+split_dir: <path_to_split_dir>  # path to cross-validation split files
+num_wsi_feature_tokens: 2048  # number of tokens in WSI feature sampled
+k: 5  # total fold number
+fold_nb: 0  # fold number
+cache: false  # cache dataset in memory
+val: true  # enable validation
+
+# Model parameters
+model: mirror  # Name of model to train
+wsi_mask_ratio: 0.75  # ratio of masked tokens in WSI
+rna_mask_ratio: 0.75  # ratio of masked tokens in RNA
+initial_checkpoint: ""  # Load this checkpoint into model after initialization (default: none)
+resume: ""  # Resume full model and optimizer state from checkpoint (default: none)
+no_resume_opt: false  # prevent resume of optimizer state when resuming model
+batch_size: 16  # Input batch size for training
+validation_batch_size: null  # Validation batch size override
+fuser: ""  # Select jit fuser
+grad_accum_steps: 1  # The number of steps to accumulate gradients
+grad_checkpointing: false  # Enable gradient checkpointing
+fast_norm: false  # enable experimental fast-norm
+model_kwargs:
+  wsi_embed_dim: 768
+  rna_embed_dim: 10234
+  embed_dim: 768
+  wsi_num_tokens: 2048
+  wsi_generative_decoder_depth: 1
+  rna_encoder_depth: 2
+  rna_pos_embed: learn
+  rna_mlp_ratio: 4.
+  rna_pos_drop_rate: 0.
+  rna_proj_drop_rate: 0.1
+  rna_attn_drop_rate: 0.
+  rna_drop_path_rate: 0.
+  rna_norm_layer: layernorm
+  rna_act_layer: gelu
+  rna_generative_decoder_depth: 1
+  style_mlp_hidden_dim: 512
+  style_mlp_out_dim: 256
+  style_latent_dim: 128
+  num_prototypes: 3000
+torchscript: false
+torchcompile: null
+
+# Device & distributed
+device: cuda  # Device to use
+amp: true  # Use mixed precision training
+amp_dtype: float16  # lower precision AMP dtype
+amp_impl: native  # AMP implementation
+no_ddp_bb: false  # Force broadcast buffers off
+synchronize_step: false  # synchronize end of each step
+local_rank: 0
+device_modules: null  # Python imports for device backend modules
+
+# Optimizer parameters
+opt: adam  # Optimizer
+opt_eps: null
+opt_betas: null
+momentum: 0.9  # Optimizer momentum
+weight_decay: 0  # weight decay
+clip_grad: null  # Clip gradient norm
+clip_mode: norm  # Gradient clipping mode
+layer_decay: null  # layer-wise learning rate decay
+opt_kwargs: {}
+
+# Learning rate schedule parameters
+use_sched: false  # scheduler on/off
+sched: cosine  # LR scheduler (default: "cosine")
+sched_on_updates: false  # Apply LR scheduler step on update instead of epoch end.
+lr: 2e-5  # learning rate, overrides lr-base if set (default: None)
+lr_base: 0.1  # base learning rate: lr = lr_base * global_batch_size / base_size
+lr_base_size: 256  # base learning rate batch size (divisor, default: 256)
+lr_base_scale: ""  # base learning rate vs batch_size scaling ("linear", "sqrt", based on opt if empty)
+lr_noise: null  # learning rate noise on/off epoch percentages
+lr_noise_pct: 0.67  # learning rate noise limit percent (default: 0.67)
+lr_noise_std: 1.0  # learning rate noise std-dev (default: 1.0)
+lr_cycle_mul: 1.0  # learning rate cycle len multiplier (default: 1.0)
+lr_cycle_decay: 0.5  # amount to decay each learning rate cycle (default: 0.5)
+lr_cycle_limit: 1  # learning rate cycle limit, cycles enabled if > 1
+lr_k_decay: 1.0  # learning rate k-decay for cosine/poly (default: 1.0)
+warmup_lr: 1e-6  # warmup learning rate (default: 1e-5)
+min_lr: 1e-8  # lower lr bound for cyclic schedulers that hit 0 (default: 0)
+epochs: 100  # number of epochs to train (default: 300)
+epoch_repeats: 0.0  # epoch repeat multiplier (number of times to repeat dataset epoch per train epoch)
+start_epoch: null  # manual epoch number (useful on restarts)
+decay_milestones: # list of decay epoch indices for multistep lr. must be increasing
+  - 90
+  - 180
+  - 270
+decay_epochs: 90  # epoch interval to decay LR
+warmup_epochs: 5  # epochs to warmup LR, if scheduler supports
+warmup_prefix: false  # Exclude warmup period from decay schedule.
+cooldown_epochs: 0  # epochs to cooldown LR at min_lr, after cyclic schedule ends
+patience_epochs: 10  # patience epochs for Plateau LR scheduler (default: 10)
+decay_rate: 0.1  # LR decay rate (default: 0.1)
+
+# Augmentation & regularization parameters
+loss: mirror_loss  # Loss function
+loss_kwargs:
+  clip_loss_cache_labels: true
+  contrastive_loss_weight: 0.5
+  wsi_generative_loss_weight: 0.15
+  rna_generative_loss_weight: 0.15
+  style_loss_weight: 0.1
+  cluster_loss_weight: 0.1
+
+# Batch norm parameters
+sync_bn: false  # Enable synchronized BatchNorm
+dist_bn: reduce  # Distribute BatchNorm stats
+
+# Model exponential moving average parameters
+model_ema: false  # Enable tracking moving average of model weights
+model_ema_force_cpu: false  # Force EMA to be tracked on CPU
+model_ema_decay: 0.9998  # Decay factor for model weights EMA
+model_ema_warmup: false  # Enable warmup for model EMA decay
+
+# Miscellaneous parameters
+seed: 42  # random seed
+worker_seeding: all  # worker seed mode
+log_interval: 1  # batches to wait before logging
+recovery_interval: 0  # batches to wait before writing recovery checkpoint
+checkpoint_hist: 5  # number of checkpoints to keep
+workers: 8  # number of training processes
+pin_mem: true  # Pin CPU memory in DataLoader
+output: <path_to_output>  # path to output folder
+experiment: ""  # name of train experiment
+log_wandb: true  # log training metrics to wandb
+wandb_project: "MIRROR"  # Wandb project name

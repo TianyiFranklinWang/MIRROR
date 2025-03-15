@@ -1,0 +1,131 @@
+# This is a template configuration file.
+# Please replace placeholder values before use.
+
+# Dataset parameters
+wsi_feature_dir: <path_to_wsi_feature_dir>  # Path to dataset (root dir)
+rna_feature_csv: <path_to_rna_feature_csv>  # Path to omics CSV file
+survival_csv: <path_to_survival_csv>  # Path to survival CSV file
+split_dir: <path_to_split_dir>  # Path to cross-validation split files
+num_wsi_feature_tokens: 2048  # Number of tokens in WSI feature sampled
+k: 5  # Total number of folds in cross-validation
+fold_nb: 0  # Current fold number
+num_bins: 4  # Number of bins for survival data
+wsi_feature_only: false  # Use only WSI features
+cache: false  # Cache dataset in memory
+val: true  # Enable validation
+
+# Model parameters
+model: mirror_classifier  # Name of model to train
+initial_checkpoint: ""  # Load this checkpoint into model after initialization (default: none)
+resume: ""  # Resume full model and optimizer state from checkpoint (default: none)
+no_resume_opt: false  # Prevent resume of optimizer state when resuming model
+num_classes: 4  # Number of label classes
+in_chans: null  # Image input channels (default: None => 3)
+batch_size: 16  # Input batch size for training
+validation_batch_size: null  # Validation batch size override
+fuser: ""  # Select JIT fuser
+grad_accum_steps: 1  # Number of steps to accumulate gradients
+grad_checkpointing: false  # Enable gradient checkpointing
+fast_norm: false  # Enable experimental fast-norm
+model_kwargs:
+  wsi_embed_dim: 768
+  rna_embed_dim: 10234
+  embed_dim: 768
+  rna_encoder_depth: 2
+  rna_pos_embed: learn
+  rna_mlp_ratio: 4.
+  rna_pos_drop_rate: 0.
+  rna_proj_drop_rate: 0.1
+  rna_attn_drop_rate: 0.
+  rna_drop_path_rate: 0.
+  rna_norm_layer: layernorm
+  rna_act_layer: gelu
+  fusion: concat
+init_head: false  # Initialize head parameters
+head_init_scale: null  # Head initialization scale
+head_init_bias: null  # Head initialization bias value
+torchscript: false  # Use TorchScript
+torchcompile: null  # Enable Torch compilation
+
+# Device & distributed
+device: cuda  # Specify the device to use (e.g., "cuda", "cpu")
+amp: true  # Use mixed precision training
+amp_dtype: float16  # Lower precision AMP dtype
+amp_impl: native  # AMP implementation ("native" or "apex")
+no_ddp_bb: false  # Force broadcast buffers for native DDP to off
+synchronize_step: false  # Synchronize at the end of each step
+local_rank: 0
+device_modules: null  # Python imports for device backend modules
+
+# Optimizer parameters
+opt: adam  # Optimizer
+opt_eps: null
+opt_betas: null
+momentum: 0.9  # Optimizer momentum
+weight_decay: 0.0  # Weight decay
+clip_grad: null  # Clip gradient norm
+clip_mode: norm  # Gradient clipping mode
+layer_decay: null  # Layer-wise learning rate decay
+opt_kwargs: {}
+
+# Learning rate schedule parameters
+use_sched: false  # scheduler on/off
+sched: cosine  # LR scheduler (default: "cosine")
+sched_on_updates: false  # Apply LR scheduler step on update instead of epoch end.
+lr: 3e-3  # learning rate, overrides lr-base if set (default: None)
+lr_base: 0.1  # base learning rate: lr = lr_base * global_batch_size / base_size
+lr_base_size: 256  # base learning rate batch size (divisor, default: 256)
+lr_base_scale: ""  # base learning rate vs batch_size scaling ("linear", "sqrt", based on opt if empty)
+lr_noise: null  # learning rate noise on/off epoch percentages
+lr_noise_pct: 0.67  # learning rate noise limit percent (default: 0.67)
+lr_noise_std: 1.0  # learning rate noise std-dev (default: 1.0)
+lr_cycle_mul: 1.0  # learning rate cycle len multiplier (default: 1.0)
+lr_cycle_decay: 0.5  # amount to decay each learning rate cycle (default: 0.5)
+lr_cycle_limit: 1  # learning rate cycle limit, cycles enabled if > 1
+lr_k_decay: 1.0  # learning rate k-decay for cosine/poly (default: 1.0)
+warmup_lr: 0.0  # warmup learning rate (default: 1e-5)
+min_lr: 0  # lower lr bound for cyclic schedulers that hit 0 (default: 0)
+epochs: 100  # number of epochs to train (default: 300)
+epoch_repeats: 0.0  # epoch repeat multiplier (number of times to repeat dataset epoch per train epoch)
+start_epoch: null  # manual epoch number (useful on restarts)
+decay_milestones:  # list of decay epoch indices for multistep lr. must be increasing
+  - 90
+  - 180
+  - 270
+decay_epochs: 90  # epoch interval to decay LR
+warmup_epochs: 5  # epochs to warmup LR, if scheduler supports
+warmup_prefix: false  # Exclude warmup period from decay schedule.
+cooldown_epochs: 0  # epochs to cooldown LR at min_lr, after cyclic schedule ends
+patience_epochs: 10  # patience epochs for Plateau LR scheduler (default: 10)
+decay_rate: 0.1  # LR decay rate (default: 0.1)
+
+# Augmentation & regularization parameters
+loss: nll_surv  # Loss function (default: nll_surv)
+loss_alpha: 0.0  # How much to weigh uncensored patients
+
+# Batch norm parameters
+sync_bn: false  # Enable synchronized BatchNorm
+dist_bn: reduce  # Distribute BatchNorm stats
+
+# Model exponential moving average parameters
+model_ema: false  # Enable tracking moving average of model weights
+model_ema_force_cpu: false  # Force EMA to be tracked on CPU
+model_ema_decay: 0.9998  # Decay factor for model weights EMA
+model_ema_warmup: false  # Enable warmup for model EMA decay
+
+# Miscellaneous parameters
+seed: 42  # Random seed
+worker_seeding: all  # Worker seed mode
+log_interval: 1  # Batches to wait before logging
+recovery_interval: 0  # Batches to wait before writing recovery checkpoint
+checkpoint_hist: 5  # Number of checkpoints to keep
+workers: 8  # Number of training processes
+pin_mem: true  # Pin CPU memory in DataLoader
+drop_last: true  # Drop last batch during training
+weighted_sampler: false  # Use weighted sampling for class imbalance
+output: <path_to_output_dir>  # Specify path to output folder
+experiment: ""  # name of train experiment, name of sub-folder for output
+eval_metric: c-index  # Best metric (default: "c-index")
+log_wandb: true  # log training and validation metrics to wandb
+wandb_project: "MIRROR"  # Wandb project name (default: None)
+linear_probe: true  # linear probe mode
