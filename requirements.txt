@@ -2,3 +2,6 @@ lintrunner~=0.12.7
 lintrunner-adapters~=0.12.4
 torch~=2.6.0
 timm~=1.0.15
+nystrom_attention~=0.0.12
+pandas~=2.2.3
+wandb~=0.19.8
