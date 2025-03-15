@@ -1104,9 +1104,9 @@ def train_one_epoch(
     update_time_m = utils.AverageMeter()
     data_time_m = utils.AverageMeter()
     losses_m = utils.AverageMeter()
-    contrastive_losses_m = utils.AverageMeter()
-    wsi_generative_losses_m = utils.AverageMeter()
-    rna_generative_losses_m = utils.AverageMeter()
+    alignment_losses_m = utils.AverageMeter()
+    wsi_retention_losses_m = utils.AverageMeter()
+    rna_retention_losses_m = utils.AverageMeter()
     style_losses_m = utils.AverageMeter()
     cluster_losses_m = utils.AverageMeter()
     logit_scales_m = utils.AverageMeter()
@@ -1144,16 +1144,16 @@ def train_one_epoch(
         def _forward():
             with amp_autocast():
                 (
-                    wsi_contrastive_emb,
-                    wsi_generative_emb,
-                    wsi_generative_target,
+                    wsi_alignment_emb,
+                    wsi_retention_emb,
+                    wsi_retention_target,
                     wsi_mask,
                     wsi_score,
                     wsi_mu,
                     wsi_logstd,
-                    rna_contrastive_emb,
-                    rna_generative_emb,
-                    rna_generative_target,
+                    rna_alignment_emb,
+                    rna_retention_emb,
+                    rna_retention_target,
                     rna_mask,
                     rna_score,
                     rna_mu,
@@ -1167,22 +1167,22 @@ def train_one_epoch(
                 )
                 (
                     loss,
-                    contrastive_loss,
-                    wsi_generative_loss,
-                    rna_generative_loss,
+                    alignment_loss,
+                    wsi_retention_loss,
+                    rna_retention_loss,
                     style_loss,
                     cluster_loss,
                 ) = loss_fn(
-                    wsi_contrastive_emb,
-                    wsi_generative_emb,
-                    wsi_generative_target,
+                    wsi_alignment_emb,
+                    wsi_retention_emb,
+                    wsi_retention_target,
                     wsi_mask,
                     wsi_score,
                     wsi_mu,
                     wsi_logstd,
-                    rna_contrastive_emb,
-                    rna_generative_emb,
-                    rna_generative_target,
+                    rna_alignment_emb,
+                    rna_retention_emb,
+                    rna_retention_target,
                     rna_mask,
                     rna_score,
                     rna_mu,
@@ -1191,14 +1191,14 @@ def train_one_epoch(
                 )
             if accum_steps > 1:  # noqa: B023
                 loss /= accum_steps  # noqa: B023
-                contrastive_loss /= accum_steps  # noqa: B023
-                wsi_generative_loss /= accum_steps  # noqa: B023
-                rna_generative_loss /= accum_steps  # noqa: B023
+                alignment_loss /= accum_steps  # noqa: B023
+                wsi_retention_loss /= accum_steps  # noqa: B023
+                rna_retention_loss /= accum_steps  # noqa: B023
             return (
                 loss,
-                contrastive_loss,
-                wsi_generative_loss,
-                rna_generative_loss,
+                alignment_loss,
+                wsi_retention_loss,
+                rna_retention_loss,
                 style_loss,
                 cluster_loss,
             )
@@ -1233,9 +1233,9 @@ def train_one_epoch(
             with model.no_sync():
                 (
                     loss,
-                    contrastive_loss,
-                    wsi_generative_loss,
-                    rna_generative_loss,
+                    alignment_loss,
+                    wsi_retention_loss,
+                    rna_retention_loss,
                     style_loss,
                     cluster_loss,
                 ) = _forward()
@@ -1243,9 +1243,9 @@ def train_one_epoch(
         else:
             (
                 loss,
-                contrastive_loss,
-                wsi_generative_loss,
-                rna_generative_loss,
+                alignment_loss,
+                wsi_retention_loss,
+                rna_retention_loss,
                 style_loss,
                 cluster_loss,
             ) = _forward()
@@ -1257,14 +1257,14 @@ def train_one_epoch(
 
         if not args.distributed:
             losses_m.update(loss.item() * accum_steps, wsi_features.shape[0])
-            contrastive_losses_m.update(
-                contrastive_loss.item() * accum_steps, wsi_features.shape[0]
+            alignment_losses_m.update(
+                alignment_loss.item() * accum_steps, wsi_features.shape[0]
             )
-            wsi_generative_losses_m.update(
-                wsi_generative_loss.item() * accum_steps, wsi_features.shape[0]
+            wsi_retention_losses_m.update(
+                wsi_retention_loss.item() * accum_steps, wsi_features.shape[0]
             )
-            rna_generative_losses_m.update(
-                rna_generative_loss.item() * accum_steps, wsi_features.shape[0]
+            rna_retention_losses_m.update(
+                rna_retention_loss.item() * accum_steps, wsi_features.shape[0]
             )
             style_losses_m.update(
                 style_loss.item() * accum_steps, wsi_features.shape[0]
@@ -1295,14 +1295,14 @@ def train_one_epoch(
 
             if args.distributed:
                 reduced_loss = utils.reduce_tensor(loss.data, args.world_size)
-                reduced_contrastive_loss = utils.reduce_tensor(
-                    contrastive_loss.data, args.world_size
+                reduced_alignment_loss = utils.reduce_tensor(
+                    alignment_loss.data, args.world_size
                 )
-                reduced_wsi_generative_loss = utils.reduce_tensor(
-                    wsi_generative_loss.data, args.world_size
+                reduced_wsi_retention_loss = utils.reduce_tensor(
+                    wsi_retention_loss.data, args.world_size
                 )
-                reduced_rna_generative_loss = utils.reduce_tensor(
-                    rna_generative_loss.data, args.word_size
+                reduced_rna_retention_loss = utils.reduce_tensor(
+                    rna_retention_loss.data, args.word_size
                 )
                 reduced_style_loss = utils.reduce_tensor(
                     style_loss.data, args.world_size
@@ -1313,15 +1313,15 @@ def train_one_epoch(
                 losses_m.update(
                     reduced_loss.item() * accum_steps, wsi_features.shape[0]
                 )
-                contrastive_losses_m.update(
-                    reduced_contrastive_loss.item() * accum_steps, wsi_features.shape[0]
+                alignment_losses_m.update(
+                    reduced_alignment_loss.item() * accum_steps, wsi_features.shape[0]
                 )
-                wsi_generative_losses_m.update(
-                    reduced_wsi_generative_loss.item() * accum_steps,
+                wsi_retention_losses_m.update(
+                    reduced_wsi_retention_loss.item() * accum_steps,
                     wsi_features.shape[0],
                 )
-                rna_generative_losses_m.update(
-                    reduced_rna_generative_loss.item() * accum_steps,
+                rna_retention_losses_m.update(
+                    reduced_rna_retention_loss.item() * accum_steps,
                     wsi_features.shape[0],
                 )
                 style_losses_m.update(
@@ -1337,9 +1337,9 @@ def train_one_epoch(
                     f"Train: {epoch} [{update_idx:>4d}/{updates_per_epoch} "
                     f"({100. * update_idx / (updates_per_epoch - 1):>3.0f}%)]  "
                     f"Loss: {losses_m.val:#.3g} ({losses_m.avg:#.3g})  "
-                    f"Contrastive Loss: {contrastive_losses_m.val:#.3g} ({contrastive_losses_m.avg:#.3g})  "
-                    f"WSI Generative Loss: {wsi_generative_losses_m.val:#.3g} ({wsi_generative_losses_m.avg:#.3g})  "
-                    f"RNA Generative Loss: {rna_generative_losses_m.val:#.3g} ({rna_generative_losses_m.avg:#.3g})  "
+                    f"Alignment Loss: {alignment_losses_m.val:#.3g} ({alignment_losses_m.avg:#.3g})  "
+                    f"WSI Retention Loss: {wsi_retention_losses_m.val:#.3g} ({wsi_retention_losses_m.avg:#.3g})  "
+                    f"RNA Retention Loss: {rna_retention_losses_m.val:#.3g} ({rna_retention_losses_m.avg:#.3g})  "
                     f"Style Loss: {style_losses_m.val:#.3g} ({style_losses_m.avg:#.3g})  "
                     f"Cluster Loss: {cluster_losses_m.val:#.3g} ({cluster_losses_m.avg:#.3g})  "
                     f"Logit Scale: {logit_scales_m.val:.3f} ({logit_scales_m.avg:.3f}) "
@@ -1369,9 +1369,9 @@ def train_one_epoch(
     return OrderedDict(
         [
             ("loss", losses_m.avg),
-            ("contrastive_loss", contrastive_losses_m.avg),
-            ("wsi_generative_loss", wsi_generative_losses_m.avg),
-            ("rna_generative_loss", rna_generative_losses_m.avg),
+            ("alignment_loss", alignment_losses_m.avg),
+            ("wsi_retention_loss", wsi_retention_losses_m.avg),
+            ("rna_retention_loss", rna_retention_losses_m.avg),
             ("style_loss", style_losses_m.avg),
             ("cluster_loss", cluster_losses_m.avg),
             ("logit_scale", logit_scales_m.avg),
@@ -1390,9 +1390,9 @@ def validate(
 ):
     batch_time_m = utils.AverageMeter()
     losses_m = utils.AverageMeter()
-    contrastive_losses_m = utils.AverageMeter()
-    wsi_generative_losses_m = utils.AverageMeter()
-    rna_generative_losses_m = utils.AverageMeter()
+    alignment_losses_m = utils.AverageMeter()
+    wsi_retention_losses_m = utils.AverageMeter()
+    rna_retention_losses_m = utils.AverageMeter()
     style_losses_m = utils.AverageMeter()
     cluster_losses_m = utils.AverageMeter()
 
@@ -1408,16 +1408,16 @@ def validate(
 
             with amp_autocast():
                 (
-                    wsi_contrastive_emb,
-                    wsi_generative_emb,
-                    wsi_generative_target,
+                    wsi_alignment_emb,
+                    wsi_retention_emb,
+                    wsi_retention_target,
                     wsi_mask,
                     wsi_score,
                     wsi_mu,
                     wsi_logstd,
-                    rna_contrastive_emb,
-                    rna_generative_emb,
-                    rna_generative_target,
+                    rna_alignment_emb,
+                    rna_retention_emb,
+                    rna_retention_target,
                     rna_mask,
                     rna_score,
                     rna_mu,
@@ -1431,22 +1431,22 @@ def validate(
                 )
                 (
                     loss,
-                    contrastive_loss,
-                    wsi_generative_loss,
-                    rna_generative_loss,
+                    alignment_loss,
+                    wsi_retention_loss,
+                    rna_retention_loss,
                     style_loss,
                     cluster_loss,
                 ) = loss_fn(
-                    wsi_contrastive_emb,
-                    wsi_generative_emb,
-                    wsi_generative_target,
+                    wsi_alignment_emb,
+                    wsi_retention_emb,
+                    wsi_retention_target,
                     wsi_mask,
                     wsi_score,
                     wsi_mu,
                     wsi_logstd,
-                    rna_contrastive_emb,
-                    rna_generative_emb,
-                    rna_generative_target,
+                    rna_alignment_emb,
+                    rna_retention_emb,
+                    rna_retention_target,
                     rna_mask,
                     rna_score,
                     rna_mu,
@@ -1456,14 +1456,14 @@ def validate(
 
             if args.distributed:
                 reduced_loss = utils.reduce_tensor(loss.data, args.world_size)
-                reduced_contrastive_loss = utils.reduce_tensor(
-                    contrastive_loss.data, args.world_size
+                reduced_alignment_loss = utils.reduce_tensor(
+                    alignment_loss.data, args.world_size
                 )
-                reduced_wsi_generative_loss = utils.reduce_tensor(
-                    wsi_generative_loss.data, args.world_size
+                reduced_wsi_retention_loss = utils.reduce_tensor(
+                    wsi_retention_loss.data, args.world_size
                 )
-                reduced_rna_generative_loss = utils.reduce_tensor(
-                    rna_generative_loss.data, args.world_size
+                reduced_rna_retention_loss = utils.reduce_tensor(
+                    rna_retention_loss.data, args.world_size
                 )
                 reduced_style_loss = utils.reduce_tensor(
                     style_loss.data, args.world_size
@@ -1473,9 +1473,9 @@ def validate(
                 )
             else:
                 reduced_loss = loss.data
-                reduced_contrastive_loss = contrastive_loss.data
-                reduced_wsi_generative_loss = wsi_generative_loss.data
-                reduced_rna_generative_loss = rna_generative_loss.data
+                reduced_alignment_loss = alignment_loss.data
+                reduced_wsi_retention_loss = wsi_retention_loss.data
+                reduced_rna_retention_loss = rna_retention_loss.data
                 reduced_style_loss = style_loss.data
                 reduced_cluster_loss = cluster_loss.data
 
@@ -1483,14 +1483,14 @@ def validate(
                 torch.cuda.synchronize()
 
             losses_m.update(reduced_loss.item(), wsi_features.shape[0])
-            contrastive_losses_m.update(
-                reduced_contrastive_loss.item(), wsi_features.shape[0]
+            alignment_losses_m.update(
+                reduced_alignment_loss.item(), wsi_features.shape[0]
             )
-            wsi_generative_losses_m.update(
-                reduced_wsi_generative_loss.item(), wsi_features.shape[0]
+            wsi_retention_losses_m.update(
+                reduced_wsi_retention_loss.item(), wsi_features.shape[0]
             )
-            rna_generative_losses_m.update(
-                reduced_rna_generative_loss.item(), wsi_features.shape[0]
+            rna_retention_losses_m.update(
+                reduced_rna_retention_loss.item(), wsi_features.shape[0]
             )
             style_losses_m.update(reduced_style_loss.item(), wsi_features.shape[0])
             cluster_losses_m.update(reduced_cluster_loss.item(), wsi_features.shape[0])
@@ -1505,9 +1505,9 @@ def validate(
                     f"{log_name}: [{batch_idx:>4d}/{last_idx}]  "
                     f"Time: {batch_time_m.val:.3f} ({batch_time_m.avg:.3f})  "
                     f"Loss: {losses_m.val:>7.3f} ({losses_m.avg:>6.3f})  "
-                    f"Contrastive Loss: {contrastive_losses_m.val:#.3g} ({contrastive_losses_m.avg:#.3g})  "
-                    f"WSI Generative Loss: {wsi_generative_losses_m.val:#.3g} ({wsi_generative_losses_m.avg:#.3g})  "
-                    f"RNA Generative Loss: {rna_generative_losses_m.val:#.3g} ({rna_generative_losses_m.avg:#.3g})  "
+                    f"Alignment Loss: {alignment_losses_m.val:#.3g} ({alignment_losses_m.avg:#.3g})  "
+                    f"WSI Retention Loss: {wsi_retention_losses_m.val:#.3g} ({wsi_retention_losses_m.avg:#.3g})  "
+                    f"RNA Retention Loss: {rna_retention_losses_m.val:#.3g} ({rna_retention_losses_m.avg:#.3g})  "
                     f"Style Loss: {style_losses_m.val:#.3g} ({style_losses_m.avg:#.3g})  "
                     f"Cluster Loss: {cluster_losses_m.val:#.3g} ({cluster_losses_m.avg:#.3g})"
                 )
@@ -1515,9 +1515,9 @@ def validate(
     metrics = OrderedDict(
         [
             ("loss", losses_m.avg),
-            ("contrastive_loss", contrastive_losses_m.avg),
-            ("wsi_generative_loss", wsi_generative_losses_m.avg),
-            ("rna_generative_loss", rna_generative_losses_m.avg),
+            ("alignment_loss", alignment_losses_m.avg),
+            ("wsi_retention_loss", wsi_retention_losses_m.avg),
+            ("rna_retention_loss", rna_retention_losses_m.avg),
             ("style_loss", style_losses_m.avg),
             ("cluster_loss", cluster_losses_m.avg),
         ]

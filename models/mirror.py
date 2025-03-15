@@ -11,6 +11,9 @@ https://github.com/szc19990412/TransMIL
 Based on the swav codebase by Meta Research
 https://github.com/facebookresearch/swav
 
+Based on the mae codebase by Meta Research
+https://github.com/facebookresearch/mae
+
 Licensed under the GNU General Public License v3.0, see LICENSE for details
 """
 
@@ -376,7 +379,7 @@ class TransFormerHybrid(TransFormer):
         act_layer: Optional[LayerType] = None,
         block_fn: Type[nn.Module] = Block,
         mlp_layer: Type[nn.Module] = Mlp,
-        generative_decoder_depth: int = 1,
+        retention_decoder_depth: int = 1,
     ):
         super().__init__(
             input_dim=input_dim,
@@ -407,12 +410,12 @@ class TransFormerHybrid(TransFormer):
         norm_layer = get_norm_layer(norm_layer) or partial(nn.LayerNorm, eps=1e-6)
         act_layer = get_act_layer(act_layer) or nn.GELU  # type: ignore[arg-type]
 
-        self.contrastive_head = nn.Linear(embed_dim, embed_dim)
+        self.alignment_head = nn.Linear(embed_dim, embed_dim)
 
-        self.generative_embed = nn.Linear(embed_dim, embed_dim)
+        self.retention_embed = nn.Linear(embed_dim, embed_dim)
         self.mask_token = nn.Parameter(torch.zeros(1, 1))
-        self.generative_pos_embed = nn.Parameter(torch.randn(1, embed_dim) * 0.02)
-        self.generative_blocks = nn.ModuleList(
+        self.retention_pos_embed = nn.Parameter(torch.randn(1, embed_dim) * 0.02)
+        self.retention_blocks = nn.ModuleList(
             [
                 block_fn(
                     dim=embed_dim,
@@ -428,22 +431,22 @@ class TransFormerHybrid(TransFormer):
                     act_layer=act_layer,
                     mlp_layer=mlp_layer,
                 )
-                for i in range(generative_decoder_depth)
+                for i in range(retention_decoder_depth)
             ]
         )
-        self.generative_norm = norm_layer(embed_dim)
-        self.generative_head = nn.Linear(embed_dim, embed_dim)
+        self.retention_norm = norm_layer(embed_dim)
+        self.retention_head = nn.Linear(embed_dim, embed_dim)
 
         self.init_weights_()
 
     def init_weights_(self):
         torch.nn.init.normal_(self.mask_token, std=0.02)
-        trunc_normal_(self.generative_pos_embed, std=0.02)
+        trunc_normal_(self.retention_pos_embed, std=0.02)
 
         def rescale(param, _layer_id):
             param.div_(math.sqrt(2.0 * _layer_id))
 
-        for layer_id, layer in enumerate(self.generative_blocks):
+        for layer_id, layer in enumerate(self.retention_blocks):
             rescale(layer.attn.proj.weight.data, layer_id + 1)
             rescale(layer.mlp.fc2.weight.data, layer_id + 1)
 
@@ -473,32 +476,32 @@ class TransFormerHybrid(TransFormer):
     def forward_encoder(self, x):
         return super().forward(x)
 
-    def forward_contrastive_head(self, x):
+    def forward_alignment_head(self, x):
         eps = 1e-6 if x.dtype == torch.float16 else 1e-12
         x = nn.functional.normalize(x, dim=-1, p=2, eps=eps)
-        contrastive_x = self.contrastive_head(x)
-        return contrastive_x
+        alignment_x = self.alignment_head(x)
+        return alignment_x
 
-    def forward_generative_head(self, x, mask_ratio):
-        generative_x = self.generative_embed(x)
-        generative_x, mask = self.random_masking(generative_x, mask_ratio)
-        generative_x = generative_x + self.generative_pos_embed
-        for blk in self.generative_blocks:
-            generative_x = blk(generative_x)
-        generative_x = self.generative_norm(generative_x)
-        generative_x = self.generative_head(generative_x)
-        return generative_x, mask
+    def forward_retention_head(self, x, mask_ratio):
+        retention_x = self.retention_embed(x)
+        retention_x, mask = self.random_masking(retention_x, mask_ratio)
+        retention_x = retention_x + self.retention_pos_embed
+        for blk in self.retention_blocks:
+            retention_x = blk(retention_x)
+        retention_x = self.retention_norm(retention_x)
+        retention_x = self.retention_head(retention_x)
+        return retention_x, mask
 
     def forward_decoders(self, x, mask_ratio):
-        contrastive_x = self.forward_contrastive_head(x)
-        generative_x, mask = self.forward_generative_head(x, mask_ratio)
-        return contrastive_x, generative_x, mask
+        alignment_x = self.forward_alignment_head(x)
+        retention_x, mask = self.forward_retention_head(x, mask_ratio)
+        return alignment_x, retention_x, mask
 
     def forward(self, x, mask_ratio=0.75):
         x = self.forward_encoder(x)
-        contrastive_x, generative_x, mask = self.forward_decoders(x, mask_ratio)
-        generative_target_x = x
-        return contrastive_x, generative_x, generative_target_x, mask
+        alignment_x, retention_x, mask = self.forward_decoders(x, mask_ratio)
+        retention_target_x = x
+        return alignment_x, retention_x, retention_target_x, mask
 
 
 # ===========================================
@@ -510,31 +513,31 @@ class FeatureTransMILHybrid(FeatureTransMIL):
         input_dim=1024,
         embed_dim=512,
         num_tokens=2048,
-        generative_decoder_depth=1,
+        retention_decoder_depth=1,
     ):
         super().__init__(input_dim, embed_dim)
 
         self.num_tokens = num_tokens
 
-        self.contrastive_head = nn.Linear(embed_dim, embed_dim)
+        self.alignment_head = nn.Linear(embed_dim, embed_dim)
 
-        self.generative_embed = nn.Linear(embed_dim, embed_dim)
+        self.retention_embed = nn.Linear(embed_dim, embed_dim)
         self.mask_token = nn.Parameter(torch.zeros(1, 1, self.embed_dim))
-        self.generative_pos_embed = nn.Parameter(
+        self.retention_pos_embed = nn.Parameter(
             torch.randn(1, num_tokens + 1, embed_dim) * 0.02
         )
-        self.generative_blocks = nn.ModuleList(
-            [TransLayer(dim=embed_dim) for _ in range(generative_decoder_depth)]
+        self.retention_blocks = nn.ModuleList(
+            [TransLayer(dim=embed_dim) for _ in range(retention_decoder_depth)]
         )
-        self.generative_norm = nn.LayerNorm(embed_dim)
-        self.generative_head = nn.Linear(embed_dim, embed_dim)
+        self.retention_norm = nn.LayerNorm(embed_dim)
+        self.retention_head = nn.Linear(embed_dim, embed_dim)
 
         self.init_weights()
 
     def init_weights(self):
         torch.nn.init.normal_(self.mask_token, std=0.02)
         torch.nn.init.normal_(self.cls_token, std=0.02)
-        trunc_normal_(self.generative_pos_embed, std=0.02)
+        trunc_normal_(self.retention_pos_embed, std=0.02)
         self.apply(self._init_weights)
 
     def _init_weights(self, m):
@@ -601,34 +604,34 @@ class FeatureTransMILHybrid(FeatureTransMIL):
 
         return h[:, : h.shape[1] - add_length, :]
 
-    def forward_contrastive_head(self, h):
+    def forward_alignment_head(self, h):
         eps = 1e-6 if h.dtype == torch.float16 else 1e-12
         h = nn.functional.normalize(h, dim=-1, p=2, eps=eps)
-        contrastive_h = self.contrastive_head(h[:, 0, :])
-        return contrastive_h
+        alignment_h = self.alignment_head(h[:, 0, :])
+        return alignment_h
 
-    def forward_generative_head(self, h, mask_ratio):
-        generative_h = self.generative_embed(h)
-        generative_h_, mask = self.random_masking(generative_h[:, 1:, :], mask_ratio)
-        generative_h = torch.cat([generative_h[:, :1, :], generative_h_], dim=1)
-        generative_h = generative_h + self.generative_pos_embed
-        for blk in self.generative_blocks:
-            generative_h = blk(generative_h)
-        generative_h = self.generative_norm(generative_h)
-        generative_h = self.generative_head(generative_h)
-        generative_h = generative_h[:, 1:, :]
-        return generative_h, mask
+    def forward_retention_head(self, h, mask_ratio):
+        retention_h = self.retention_embed(h)
+        retention_h_, mask = self.random_masking(retention_h[:, 1:, :], mask_ratio)
+        retention_h = torch.cat([retention_h[:, :1, :], retention_h_], dim=1)
+        retention_h = retention_h + self.retention_pos_embed
+        for blk in self.retention_blocks:
+            retention_h = blk(retention_h)
+        retention_h = self.retention_norm(retention_h)
+        retention_h = self.retention_head(retention_h)
+        retention_h = retention_h[:, 1:, :]
+        return retention_h, mask
 
     def forward_decoders(self, h, mask_ratio):
-        contrastive_h = self.forward_contrastive_head(h)
-        generative_h, mask = self.forward_generative_head(h, mask_ratio)
-        return contrastive_h, generative_h, mask
+        alignment_h = self.forward_alignment_head(h)
+        retention_h, mask = self.forward_retention_head(h, mask_ratio)
+        return alignment_h, retention_h, mask
 
     def forward(self, h, mask_ratio=0.75):
         h = self.forward_encoder(h)
-        contrastive_h, generative_h, mask = self.forward_decoders(h, mask_ratio)
-        generative_target_h = h[:, 1:, :]
-        return contrastive_h, generative_h, generative_target_h, mask
+        alignment_h, retention_h, mask = self.forward_decoders(h, mask_ratio)
+        retention_target_h = h[:, 1:, :]
+        return alignment_h, retention_h, retention_target_h, mask
 
 
 # ===========================================
@@ -641,7 +644,7 @@ class MIRROR(nn.Module):
         rna_embed_dim,
         embed_dim,
         wsi_num_tokens=2048,
-        wsi_generative_decoder_depth=1,
+        wsi_retention_decoder_depth=1,
         rna_encoder_depth=2,
         rna_pos_embed="learn",
         rna_mlp_ratio=2.572,
@@ -651,7 +654,7 @@ class MIRROR(nn.Module):
         rna_drop_path_rate=0.0,
         rna_norm_layer=None,
         rna_act_layer=None,
-        rna_generative_decoder_depth=1,
+        rna_retention_decoder_depth=1,
         init_logit_scale=np.log(1 / 0.07),  # noqa: B008
         style_mlp_hidden_dim=512,
         style_mlp_out_dim=256,
@@ -666,7 +669,7 @@ class MIRROR(nn.Module):
         self.rna_embed_dim = rna_embed_dim
         self.embed_dim = embed_dim
         self.wsi_num_tokens = wsi_num_tokens
-        self.wsi_generative_decoder_depth = wsi_generative_decoder_depth
+        self.wsi_retention_decoder_depth = wsi_retention_decoder_depth
         self.rna_encoder_depth = rna_encoder_depth
         self.rna_pos_embed = rna_pos_embed
         self.rna_mlp_ratio = rna_mlp_ratio
@@ -676,7 +679,7 @@ class MIRROR(nn.Module):
         self.drop_path_rate = rna_drop_path_rate
         self.rna_norm_layer = rna_norm_layer
         self.rna_act_layer = rna_act_layer
-        self.rna_generative_decoder_depth = rna_generative_decoder_depth
+        self.rna_retention_decoder_depth = rna_retention_decoder_depth
 
         self.logit_scale = nn.Parameter(torch.ones([]) * init_logit_scale)
 
@@ -684,7 +687,7 @@ class MIRROR(nn.Module):
             input_dim=self.wsi_embed_dim,
             embed_dim=self.embed_dim,
             num_tokens=self.wsi_num_tokens,
-            generative_decoder_depth=self.wsi_generative_decoder_depth,
+            retention_decoder_depth=self.wsi_retention_decoder_depth,
         )
 
         self.rna_encoder = TransFormerHybrid(
@@ -699,7 +702,7 @@ class MIRROR(nn.Module):
             drop_path_rate=self.drop_path_rate,
             norm_layer=self.rna_norm_layer,
             act_layer=self.rna_act_layer,
-            generative_decoder_depth=self.rna_generative_decoder_depth,
+            retention_decoder_depth=self.rna_retention_decoder_depth,
         )
 
         style_act_layer = get_act_layer(style_act_layer) or nn.GELU
@@ -742,32 +745,32 @@ class MIRROR(nn.Module):
 
     def forward(self, wsi_emb, rna_emb, wsi_mask_ratio=0.75, rna_mask_ratio=0.75):
         wsi_emb = self.wsi_encoder.forward_encoder(wsi_emb)
-        wsi_contrastive_emb, wsi_generative_emb, wsi_mask = (
+        wsi_alignment_emb, wsi_retention_emb, wsi_mask = (
             self.wsi_encoder.forward_decoders(wsi_emb, mask_ratio=wsi_mask_ratio)
         )
-        wsi_generative_target = wsi_emb[:, 1:, :]
+        wsi_retention_target = wsi_emb[:, 1:, :]
 
         rna_emb = self.rna_encoder.forward_encoder(rna_emb)
-        rna_contrastive_emb, rna_generative_emb, rna_mask = (
+        rna_alignment_emb, rna_retention_emb, rna_mask = (
             self.rna_encoder.forward_decoders(rna_emb, mask_ratio=rna_mask_ratio)
         )
-        rna_generative_target = rna_emb
+        rna_retention_target = rna_emb
 
         wsi_score, wsi_mu, wsi_logstd, rna_score, rna_mu, rna_logstd = (
             self.forward_style_clustering(wsi_emb[:, 0, :], rna_emb)
         )
 
         return (
-            wsi_contrastive_emb,
-            wsi_generative_emb,
-            wsi_generative_target,
+            wsi_alignment_emb,
+            wsi_retention_emb,
+            wsi_retention_target,
             wsi_mask,
             wsi_score,
             wsi_mu,
             wsi_logstd,
-            rna_contrastive_emb,
-            rna_generative_emb,
-            rna_generative_target,
+            rna_alignment_emb,
+            rna_retention_emb,
+            rna_retention_target,
             rna_mask,
             rna_score,
             rna_mu,
@@ -864,7 +867,7 @@ def mirror(**kwargs):
         "rna_embed_dim",
         "embed_dim",
         "wsi_num_tokens",
-        "wsi_generative_decoder_depth",
+        "wsi_retention_decoder_depth",
         "rna_encoder_depth",
         "rna_pos_embed",
         "rna_mlp_ratio",
@@ -874,7 +877,7 @@ def mirror(**kwargs):
         "rna_drop_path_rate",
         "rna_norm_layer",
         "rna_act_layer",
-        "rna_generative_decoder_depth",
+        "rna_retention_decoder_depth",
         "init_logit_scale",
         "style_mlp_hidden_dim",
         "style_mlp_out_dim",

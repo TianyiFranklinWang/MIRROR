@@ -29,7 +29,7 @@ model_kwargs:
   rna_embed_dim: 10234
   embed_dim: 768
   wsi_num_tokens: 2048
-  wsi_generative_decoder_depth: 1
+  wsi_retention_decoder_depth: 1
   rna_encoder_depth: 2
   rna_pos_embed: learn
   rna_mlp_ratio: 4.
@@ -39,7 +39,7 @@ model_kwargs:
   rna_drop_path_rate: 0.
   rna_norm_layer: layernorm
   rna_act_layer: gelu
-  rna_generative_decoder_depth: 1
+  rna_retention_decoder_depth: 1
   style_mlp_hidden_dim: 512
   style_mlp_out_dim: 256
   style_latent_dim: 128
@@ -103,9 +103,9 @@ decay_rate: 0.1  # LR decay rate (default: 0.1)
 loss: mirror_loss  # Loss function
 loss_kwargs:
   clip_loss_cache_labels: true
-  contrastive_loss_weight: 0.5
-  wsi_generative_loss_weight: 0.15
-  rna_generative_loss_weight: 0.15
+  alignment_loss_weight: 0.5
+  wsi_retention_loss_weight: 0.15
+  rna_retention_loss_weight: 0.15
   style_loss_weight: 0.1
   cluster_loss_weight: 0.1
 

@@ -56,51 +56,51 @@ class MIRRORLoss(nn.Module):
     def __init__(
         self,
         clip_loss_cache_labels=True,
-        contrastive_loss_weight=0.5,
-        wsi_generative_loss_weight=0.1,
-        rna_generative_loss_weight=0.1,
+        alignment_loss_weight=0.5,
+        wsi_retention_loss_weight=0.1,
+        rna_retention_loss_weight=0.1,
         style_loss_weight=0.1,
         cluster_loss_weight=0.2,
     ):
         super().__init__()
 
         self.clip_loss = ClipLoss(cache_labels=clip_loss_cache_labels)
-        self.contrastive_loss_weight = contrastive_loss_weight
-        self.wsi_generative_loss_weight = wsi_generative_loss_weight
-        self.rna_generative_loss_weight = rna_generative_loss_weight
+        self.alignment_loss_weight = alignment_loss_weight
+        self.wsi_retention_loss_weight = wsi_retention_loss_weight
+        self.rna_retention_loss_weight = rna_retention_loss_weight
         self.style_loss_weight = style_loss_weight
         self.cluster_loss_weight = cluster_loss_weight
 
     def forward(
         self,
-        wsi_contrastive_emb,
-        wsi_generative_emb,
-        wsi_generative_target,
+        wsi_alignment_emb,
+        wsi_retention_emb,
+        wsi_retention_target,
         wsi_mask,
         wsi_score,
         wsi_mu,
         wsi_logstd,
-        rna_contrastive_emb,
-        rna_generative_emb,
-        rna_generative_target,
+        rna_alignment_emb,
+        rna_retention_emb,
+        rna_retention_target,
         rna_mask,
         rna_score,
         rna_mu,
         rna_logstd,
         logit_scale,
     ):
-        contrastive_loss = self.clip_loss(
-            wsi_contrastive_emb,
-            rna_contrastive_emb,
+        alignment_loss = self.clip_loss(
+            wsi_alignment_emb,
+            rna_alignment_emb,
             logit_scale,
         )
 
-        wsi_generative_loss = (wsi_generative_emb - wsi_generative_target) ** 2
-        wsi_generative_loss = wsi_generative_loss.mean(dim=-1)
-        wsi_generative_loss = (wsi_generative_loss * wsi_mask).sum() / wsi_mask.sum()
+        wsi_retention_loss = (wsi_retention_emb - wsi_retention_target) ** 2
+        wsi_retention_loss = wsi_retention_loss.mean(dim=-1)
+        wsi_retention_loss = (wsi_retention_loss * wsi_mask).sum() / wsi_mask.sum()
 
-        rna_generative_loss = (rna_generative_emb - rna_generative_target) ** 2
-        rna_generative_loss = (rna_generative_loss * rna_mask).sum() / rna_mask.sum()
+        rna_retention_loss = (rna_retention_emb - rna_retention_target) ** 2
+        rna_retention_loss = (rna_retention_loss * rna_mask).sum() / rna_mask.sum()
 
         style_loss = 0.5 * (
             torch.sum(
@@ -119,17 +119,17 @@ class MIRRORLoss(nn.Module):
         )
 
         total_loss = (
-            self.contrastive_loss_weight * contrastive_loss
-            + self.wsi_generative_loss_weight * wsi_generative_loss
-            + self.rna_generative_loss_weight * rna_generative_loss
-            + self.style_loss_weight * style_loss
-            + self.cluster_loss_weight * cluster_loss
+                self.alignment_loss_weight * alignment_loss
+                + self.wsi_retention_loss_weight * wsi_retention_loss
+                + self.rna_retention_loss_weight * rna_retention_loss
+                + self.style_loss_weight * style_loss
+                + self.cluster_loss_weight * cluster_loss
         )
         return (
             total_loss,
-            contrastive_loss,
-            wsi_generative_loss,
-            rna_generative_loss,
+            alignment_loss,
+            wsi_retention_loss,
+            rna_retention_loss,
             style_loss,
             cluster_loss,
         )
