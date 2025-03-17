@@ -119,11 +119,11 @@ class MIRRORLoss(nn.Module):
         )
 
         total_loss = (
-                self.alignment_loss_weight * alignment_loss
-                + self.wsi_retention_loss_weight * wsi_retention_loss
-                + self.rna_retention_loss_weight * rna_retention_loss
-                + self.style_loss_weight * style_loss
-                + self.cluster_loss_weight * cluster_loss
+            self.alignment_loss_weight * alignment_loss
+            + self.wsi_retention_loss_weight * wsi_retention_loss
+            + self.rna_retention_loss_weight * rna_retention_loss
+            + self.style_loss_weight * style_loss
+            + self.cluster_loss_weight * cluster_loss
         )
         return (
             total_loss,
