@@ -152,8 +152,8 @@ python ./tools/gen_splits.py --root [path_to_wsi_features] \
 python ./tools/gen_few_shot_files.py --class-name [TCGA_class_name] \
  --survival-wsi-feature-dir [path_to_wsi_features_with_cohort] \
  --subyping-wsi-feature-dir [path_to_wsi_features_without_cohort] \
- --subyping-classes [class0_in_cohort] [class1_in_cohort] ...
-                                     --rna-feature-csv [path_to_pruned_rna_features] \
+ --subyping-classes [class0_in_cohort] [class1_in_cohort] ... \
+ --rna-feature-csv [path_to_pruned_rna_features] \
  --survival-csv [path_to_survival_data] \
  --split-dir [path_to_5foldcv_splits]
 ```
