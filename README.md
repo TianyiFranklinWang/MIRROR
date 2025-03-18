@@ -2,7 +2,9 @@
 
 # MIRROR: Multi-Modal Pathological Self-Supervised Representation Learning via Modality Alignment and Retention
 
-**Tianyi Wang, Jianan Fan, Dingxin Zhang, Dongnan Liu, Yong Xia, Heng Huang, and Weidong Cai**  
+
+**[Tianyi Wang](https://github.com/TianyiFranklinWang), [Jianan Fan](https://dblp.org/pid/248/7360.html), [Dingxin Zhang](https://scholar.google.com/citations?user=ckAbIuYAAAAJ), [Dongnan Liu](https://scholar.google.com/citations?user=JZzb8XUAAAAJ), [Yong Xia](https://scholar.google.com/citations?user=Usw1jeMAAAAJ), [Heng Huang](https://scholar.google.com/citations?user=4OqLaDwAAAAJ), and [Weidong Cai](https://weidong-tom-cai.github.io)**
+
 **[[Preprint on ArXiv]](https://arxiv.org/abs/2503.00374)**
 
 > Please give us a :star2: if you find our work useful!
@@ -76,7 +78,7 @@ We provide the processed transcriptomics data on [Kaggle](https://www.kaggle.com
 For custom data preparation:
 - Download the transcriptomics data `tcga_RSEM_isoform_fpkm.gz` and mapping table `probeMap_gencode.v23.annotation.transcript.probemap` from [Xena](https://xenabrowser.net/datapages/?dataset=tcga_RSEM_isoform_fpkm&host=https%3A%2F%2Ftoil.xenahubs.net).
 - After unzipping the transcriptomics file you will get a tsv file `tcga_RSEM_isoform_fpkm`. Put the extracted file and mapping table into the `./input/raw_rna_features/` directory.
-**Tip:** I strongly recommend converting the `tcga_RSEM_isoform_fpkm` file from tsv to parquet using pandas and setting the first column as the index. This will speed up the processing and is compatible with our script.
+**Tip:** I strongly recommend converting the `tcga_RSEM_isoform_fpkm` file from tsv to [Apache Parquet](https://parquet.apache.org/) using [pandas](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_parquet.html) and setting the first column as the index. This will speed up the processing and is compatible with our script.
 - Download disease related genes from [COSMIC database](https://cancer.sanger.ac.uk/census) and put it under `./input/raw_rna_feature/[cohort]`.
 - Use './tools/distill_rna_feature.py' to generate the pruned transcriptomics features.
 ```bash
@@ -169,6 +171,13 @@ python ./tools/split_weights.py --result-dir [path_to_pretrain_result] \
  --weight-file [weight_file_name]
 ```
 
+### Lintting Code
+
+We use [lintrunner](https://github.com/suo/lintrunner) to check our code. You can run the following command to check the code quality.
+```bash
+lintrunner --all-files -a
+```
+
 ## Contact  
 
 For any inquiries or if you encounter issues, please feel free to contact us or open an issue.
@@ -192,3 +201,6 @@ If you find our work useful, please cite it using the following BibTeX entry:
  url={https://arxiv.org/abs/2503.00374}, 
 }
 ```
+
+---
+Develop with :heart: by [Tianyi Wang](https://github.com/TianyiFranklinWang) @ The University of Sydney
