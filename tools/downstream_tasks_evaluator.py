@@ -47,24 +47,6 @@ parser.add_argument(
     help="Subtyping linear probing config file",
 )
 parser.add_argument(
-    "--subtyping-finetune-config",
-    type=str,
-    default=None,
-    help="Subtyping finetuning config file",
-)
-parser.add_argument(
-    "--subtyping-1shot-config",
-    type=str,
-    default=None,
-    help="Subtyping 1-shot config file",
-)
-parser.add_argument(
-    "--subtyping-5shot-config",
-    type=str,
-    default=None,
-    help="Subtyping 5-shot config file",
-)
-parser.add_argument(
     "--subtyping-10shot-config",
     type=str,
     default=None,
@@ -75,24 +57,6 @@ parser.add_argument(
     type=str,
     default=None,
     help="Survival linear probing config file",
-)
-parser.add_argument(
-    "--survival-finetune-config",
-    type=str,
-    default=None,
-    help="Survival finetuning config file",
-)
-parser.add_argument(
-    "--survival-1shot-config",
-    type=str,
-    default=None,
-    help="Survival 1-shot config file",
-)
-parser.add_argument(
-    "--survival-5shot-config",
-    type=str,
-    default=None,
-    help="Survival 5-shot config file",
 )
 parser.add_argument(
     "--survival-10shot-config",
@@ -212,26 +176,7 @@ def main():
     else:
         _logger.info("Subtyping linear probing configuration file not provided")
 
-    if args.subtyping_finetune_config:
-        _logger.info(
-            f"Subtyping finetuning configuration file at: {args.subtyping_finetune_config}"
-        )
-        for i in range(args.k):
-            tasks[f"subtyping_finetune_fold{i}"] = [
-                args.subtyping_launch_script,
-                str(1),
-                str(1),
-                "c10d",
-                "localhost:0",
-                args.subtyping_finetune_config,
-                str(i),
-            ]
-            if checkpoints is not None:
-                tasks[f"subtyping_finetune_fold{i}"].append(checkpoints[i])
-    else:
-        _logger.info("Subtyping finetuning configuration file not provided")
-
-    for shot in [1, 5, 10]:
+    for shot in [10]:
         if getattr(args, f"subtyping_{shot}shot_config"):
             _logger.info(
                 f"Subtyping {shot}-shot configuration file at: {getattr(args, f'subtyping_{shot}shot_config')}"
@@ -270,26 +215,7 @@ def main():
     else:
         _logger.info("Survival linear probing configuration file not provided")
 
-    if args.survival_finetune_config:
-        _logger.info(
-            f"Survival finetuning configuration file at: {args.survival_finetune_config}"
-        )
-        for i in range(args.k):
-            tasks[f"survival_finetune_fold{i}"] = [
-                args.survival_launch_script,
-                str(1),
-                str(1),
-                "c10d",
-                "localhost:0",
-                args.survival_finetune_config,
-                str(i),
-            ]
-            if checkpoints is not None:
-                tasks[f"survival_finetune_fold{i}"].append(checkpoints[i])
-    else:
-        _logger.info("Survival finetuning configuration file not provided")
-
-    for shot in [1, 5, 10]:
+    for shot in [10]:
         if getattr(args, f"survival_{shot}shot_config"):
             _logger.info(
                 f"Survival {shot}-shot configuration file at: {getattr(args, f'survival_{shot}shot_config')}"

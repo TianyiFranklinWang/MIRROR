@@ -78,7 +78,7 @@ parser.add_argument(
 )
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument(
-    "--shots", default=[1, 5, 10], type=int, nargs="+", help="Number of shots"
+    "--shots", default=[10], type=int, nargs="+", help="Number of shots"
 )
 parser.add_argument("-k", "--k", default=5, type=int, help="Number of folds")
 parser.add_argument(
