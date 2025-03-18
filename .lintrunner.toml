@@ -43,6 +43,9 @@ include_patterns = [
     '**/*.py',
     '**/*.pyi',
 ]
+exclude_patterns = [
+    'tools/feature_generation/feature_models/*.py',
+]
 command = [
     'python',
     '-m',
@@ -70,6 +73,7 @@ include_patterns = [
 ]
 exclude_patterns = [
     'test/**/*.py',
+    'tools/feature_generation/feature_models/*.py',
 ]
 command = [
     'python',
@@ -96,6 +100,9 @@ init_command = [
 code = 'BLACK-ISORT'
 include_patterns = [
     '**/*.py',
+]
+exclude_patterns = [
+    'tools/feature_generation/feature_models/*.py',
 ]
 command = [
     'python',
