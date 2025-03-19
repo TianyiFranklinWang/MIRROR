@@ -171,7 +171,7 @@ python ./tools/split_weights.py --result-dir [path_to_pretrain_result] \
  --weight-file [weight_file_name]
 ```
 
-### Lintting Code
+### Linting Code
 
 We use [lintrunner](https://github.com/suo/lintrunner) to check our code. You can run the following command to check the code quality.
 ```bash
