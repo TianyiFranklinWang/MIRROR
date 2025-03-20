@@ -163,7 +163,7 @@ class TransFormer(nn.Module):
         qkv_bias: bool = True,
         qk_norm: bool = False,
         init_values: Optional[float] = None,
-        pos_embed: str = "learn",
+        gene_embed: str = "learn",
         pre_norm: bool = False,
         final_norm: bool = True,
         embed_drop_rate: float = 0.0,
@@ -180,7 +180,7 @@ class TransFormer(nn.Module):
         mlp_layer: Type[nn.Module] = Mlp,
     ) -> None:
         super().__init__()
-        assert pos_embed in ("", "none", "learn")
+        assert gene_embed in ("", "none", "learn")
         norm_layer = get_norm_layer(norm_layer) or partial(nn.LayerNorm, eps=1e-6)
         act_layer = get_act_layer(act_layer) or nn.GELU  # type: ignore[arg-type]
 
@@ -197,10 +197,10 @@ class TransFormer(nn.Module):
             drop=embed_drop_rate,
         )
 
-        if not pos_embed or pos_embed == "none":
-            self.pos_embed = None
+        if not gene_embed or gene_embed == "none":
+            self.gene_embed = None
         else:
-            self.pos_embed = nn.Parameter(torch.randn(1, embed_dim) * 0.02)
+            self.gene_embed = nn.Parameter(torch.randn(1, embed_dim) * 0.02)
         self.pos_drop = nn.Dropout(p=pos_drop_rate)
         self.norm_pre = norm_layer(embed_dim) if pre_norm else nn.Identity()
 
@@ -243,20 +243,20 @@ class TransFormer(nn.Module):
 
     def init_weights(self, mode: str = "") -> None:
         assert mode in ("jax", "jax_nlhb", "moco", "")
-        if self.pos_embed is not None:
-            trunc_normal_(self.pos_embed, std=0.02)
+        if self.gene_embed is not None:
+            trunc_normal_(self.gene_embed, std=0.02)
 
-    def _pos_embed(self, x):
-        if self.pos_embed is None:
+    def _gene_embed(self, x):
+        if self.gene_embed is None:
             return x
 
-        x = x + self.pos_embed
+        x = x + self.gene_embed
 
         return self.pos_drop(x)
 
     def forward(self, x):
         x = self.embedding(x)
-        x = self._pos_embed(x)
+        x = self._gene_embed(x)
         x = self.norm_pre(x)
         x = self.blocks(x)
         x = self.norm(x)
@@ -364,7 +364,7 @@ class TransFormerHybrid(TransFormer):
         qkv_bias: bool = True,
         qk_norm: bool = False,
         init_values: Optional[float] = None,
-        pos_embed: str = "learn",
+        gene_embed: str = "learn",
         pre_norm: bool = False,
         final_norm: bool = True,
         embed_drop_rate: float = 0.0,
@@ -390,7 +390,7 @@ class TransFormerHybrid(TransFormer):
             qkv_bias=qkv_bias,
             qk_norm=qk_norm,
             init_values=init_values,
-            pos_embed=pos_embed,
+            gene_embed=gene_embed,
             pre_norm=pre_norm,
             final_norm=final_norm,
             embed_drop_rate=embed_drop_rate,
@@ -414,7 +414,7 @@ class TransFormerHybrid(TransFormer):
 
         self.retention_embed = nn.Linear(embed_dim, embed_dim)
         self.mask_token = nn.Parameter(torch.zeros(1, 1))
-        self.retention_pos_embed = nn.Parameter(torch.randn(1, embed_dim) * 0.02)
+        self.retention_gene_embed = nn.Parameter(torch.randn(1, embed_dim) * 0.02)
         self.retention_blocks = nn.ModuleList(
             [
                 block_fn(
@@ -441,7 +441,7 @@ class TransFormerHybrid(TransFormer):
 
     def init_weights_(self):
         torch.nn.init.normal_(self.mask_token, std=0.02)
-        trunc_normal_(self.retention_pos_embed, std=0.02)
+        trunc_normal_(self.retention_gene_embed, std=0.02)
 
         def rescale(param, _layer_id):
             param.div_(math.sqrt(2.0 * _layer_id))
@@ -485,7 +485,7 @@ class TransFormerHybrid(TransFormer):
     def forward_retention_head(self, x, mask_ratio):
         retention_x = self.retention_embed(x)
         retention_x, mask = self.random_masking(retention_x, mask_ratio)
-        retention_x = retention_x + self.retention_pos_embed
+        retention_x = retention_x + self.retention_gene_embed
         for blk in self.retention_blocks:
             retention_x = blk(retention_x)
         retention_x = self.retention_norm(retention_x)
@@ -523,7 +523,7 @@ class FeatureTransMILHybrid(FeatureTransMIL):
 
         self.retention_embed = nn.Linear(embed_dim, embed_dim)
         self.mask_token = nn.Parameter(torch.zeros(1, 1, self.embed_dim))
-        self.retention_pos_embed = nn.Parameter(
+        self.retention_gene_embed = nn.Parameter(
             torch.randn(1, num_tokens + 1, embed_dim) * 0.02
         )
         self.retention_blocks = nn.ModuleList(
@@ -537,7 +537,7 @@ class FeatureTransMILHybrid(FeatureTransMIL):
     def init_weights(self):
         torch.nn.init.normal_(self.mask_token, std=0.02)
         torch.nn.init.normal_(self.cls_token, std=0.02)
-        trunc_normal_(self.retention_pos_embed, std=0.02)
+        trunc_normal_(self.retention_gene_embed, std=0.02)
         self.apply(self._init_weights)
 
     def _init_weights(self, m):
@@ -614,7 +614,7 @@ class FeatureTransMILHybrid(FeatureTransMIL):
         retention_h = self.retention_embed(h)
         retention_h_, mask = self.random_masking(retention_h[:, 1:, :], mask_ratio)
         retention_h = torch.cat([retention_h[:, :1, :], retention_h_], dim=1)
-        retention_h = retention_h + self.retention_pos_embed
+        retention_h = retention_h + self.retention_gene_embed
         for blk in self.retention_blocks:
             retention_h = blk(retention_h)
         retention_h = self.retention_norm(retention_h)
@@ -646,7 +646,7 @@ class MIRROR(nn.Module):
         wsi_num_tokens=2048,
         wsi_retention_decoder_depth=1,
         rna_encoder_depth=2,
-        rna_pos_embed="learn",
+        rna_gene_embed="learn",
         rna_mlp_ratio=2.572,
         rna_pos_drop_rate=0.0,
         rna_proj_drop_rate=0.1,
@@ -671,7 +671,7 @@ class MIRROR(nn.Module):
         self.wsi_num_tokens = wsi_num_tokens
         self.wsi_retention_decoder_depth = wsi_retention_decoder_depth
         self.rna_encoder_depth = rna_encoder_depth
-        self.rna_pos_embed = rna_pos_embed
+        self.rna_gene_embed = rna_gene_embed
         self.rna_mlp_ratio = rna_mlp_ratio
         self.rna_pos_drop_rate = rna_pos_drop_rate
         self.rna_proj_drop_rate = rna_proj_drop_rate
@@ -694,7 +694,7 @@ class MIRROR(nn.Module):
             input_dim=self.rna_embed_dim,
             embed_dim=self.embed_dim,
             depth=self.rna_encoder_depth,
-            pos_embed=self.rna_pos_embed,
+            gene_embed=self.rna_gene_embed,
             mlp_ratio=self.rna_mlp_ratio,
             pos_drop_rate=self.rna_pos_drop_rate,
             proj_drop_rate=self.rna_proj_drop_rate,
@@ -790,7 +790,7 @@ class MIRRORClassifier(nn.Module):
         embed_dim,
         num_classes,
         rna_encoder_depth=2,
-        rna_pos_embed="learn",
+        rna_gene_embed="learn",
         rna_mlp_ratio=2.572,
         rna_pos_drop_rate=0.0,
         rna_proj_drop_rate=0.1,
@@ -806,7 +806,7 @@ class MIRRORClassifier(nn.Module):
         self.rna_embed_dim = rna_embed_dim
         self.embed_dim = embed_dim
         self.rna_encoder_depth = rna_encoder_depth
-        self.rna_pos_embed = rna_pos_embed
+        self.rna_gene_embed = rna_gene_embed
         self.rna_mlp_ratio = rna_mlp_ratio
         self.rna_pos_drop_rate = rna_pos_drop_rate
         self.rna_proj_drop_rate = rna_proj_drop_rate
@@ -827,7 +827,7 @@ class MIRRORClassifier(nn.Module):
             input_dim=self.rna_embed_dim,
             embed_dim=self.embed_dim,
             depth=self.rna_encoder_depth,
-            pos_embed=self.rna_pos_embed,
+            gene_embed=self.rna_gene_embed,
             mlp_ratio=self.rna_mlp_ratio,
             pos_drop_rate=self.rna_pos_drop_rate,
             proj_drop_rate=self.rna_proj_drop_rate,
@@ -869,7 +869,7 @@ def mirror(**kwargs):
         "wsi_num_tokens",
         "wsi_retention_decoder_depth",
         "rna_encoder_depth",
-        "rna_pos_embed",
+        "rna_gene_embed",
         "rna_mlp_ratio",
         "rna_pos_drop_rate",
         "rna_proj_drop_rate",
@@ -905,7 +905,7 @@ def mirror_classifier(**kwargs):
         "rna_embed_dim",
         "embed_dim",
         "rna_encoder_depth",
-        "rna_pos_embed",
+        "rna_gene_embed",
         "rna_mlp_ratio",
         "rna_pos_drop_rate",
         "rna_proj_drop_rate",

@@ -34,7 +34,7 @@ model_kwargs:
   rna_embed_dim: 10234
   embed_dim: 768
   rna_encoder_depth: 2
-  rna_pos_embed: learn
+  rna_gene_embed: learn
   rna_mlp_ratio: 4.
   rna_pos_drop_rate: 0.
   rna_proj_drop_rate: 0.1
