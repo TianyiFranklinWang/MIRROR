@@ -80,7 +80,7 @@ For custom data preparation:
 - After unzipping the transcriptomics file you will get a tsv file `tcga_RSEM_isoform_fpkm`. Put the extracted file and mapping table into the `./input/raw_rna_features/` directory.
 **Tip:** I strongly recommend converting the `tcga_RSEM_isoform_fpkm` file from tsv to [Apache Parquet](https://parquet.apache.org/) using [pandas](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_parquet.html) and setting the first column as the index. This will speed up the processing and is compatible with our script.
 - Download disease related genes from [COSMIC database](https://cancer.sanger.ac.uk/census) and put it under `./input/raw_rna_feature/[cohort]`.
-- Use './tools/distill_rna_feature.py' to generate the pruned transcriptomics features.
+- Use `./tools/distill_rna_feature.py` to generate the pruned transcriptomics features.
 ```bash
 python ./tools/distill_rna_feature.py --cohort [cohort] \
  --cosmic-genes [cosmic_file_name] \
@@ -104,8 +104,7 @@ We also provide two ways to launch these scripts. One way is using bash scripts 
 ```bash
 ./scripts/run_train_mirror.sh <nnodes> <nproc_per_node> <rdzv_backend> <rdzv_endpoint> <config_file> <fold_nb> [additional_args...]
 ```
-`nnodes`, `nproc_per_node`, `rdzv_backend` and `rdzv_endpoint` are the parameters for distributed training. `config_file` is the path to the configuration file. `fold_nb` is the fold number for cross-validation. `additional_args` are arguments for PyTorch distributed training, you can find out more details [here](https://pytorch.org/docs/stable/elastic/run.html).
-`config_file` is the path to the configuration file and `fold_nb` is the fold number for cross-validation. You can also provide additional arguments in a key-value format to overwrite the configuration file.
+`nnodes`, `nproc_per_node`, `rdzv_backend` and `rdzv_endpoint` are the parameters for distributed training, you can find out more details [here](https://pytorch.org/docs/stable/elastic/run.html). `config_file` is the path to the configuration file. `fold_nb` is the fold number for cross-validation. `additional_args` are additional keywords arguments in training scripts.
 
 Another way is through a naive job manager python script we provided in `./tools/pretrain_job_launcher.py`, which can automatically collect pre-training jobs and manage GPU resources. 
 ```bash
