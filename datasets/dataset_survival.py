@@ -1,5 +1,13 @@
+"""TCGA Survival Dataset
+Copyright (c) 2025, Tianyi Wang @ The University of Sydney
+All rights reserved.
+
+Licensed under the GNU General Public License v3.0, see LICENSE for details
+"""
+
 import logging
 import os
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -13,20 +21,37 @@ _logger = logging.getLogger(__name__)
 class TCGAWSIRNASurvivalDataset(Dataset):
     def __init__(
         self,
-        wsi_feature_dir,
-        rna_feature_csv,
-        survival_csv,
-        num_wsi_feature_tokens,
-        splits,
-        k=5,
-        num_bins=4,
-        case_id_column="Patient ID",
-        slide_id_column="Sample ID",
-        label_column="Overall Survival (Months)",
-        censor_column="Overall Survival Status",
-        wsi_feature_only=False,
-        cache=False,
-    ):
+        wsi_feature_dir: str,
+        rna_feature_csv: str,
+        survival_csv: str,
+        num_wsi_feature_tokens: int,
+        splits: Optional[str] = None,
+        k: int = 5,
+        num_bins: int = 4,
+        case_id_column: str = "Patient ID",
+        slide_id_column: str = "Sample ID",
+        label_column: str = "Overall Survival (Months)",
+        censor_column: str = "Overall Survival Status",
+        wsi_feature_only: bool = False,
+        cache: bool = False,
+    ) -> None:
+        """
+        Args:
+            wsi_feature_dir: Directory containing WSI features
+            rna_feature_csv: Path to CSV containing RNA features
+            survival_csv: Path to CSV containing survival data
+            num_wsi_feature_tokens: Number of WSI patch features to sample
+            splits: Path to CSV containing train/val splits. Defaults to None.
+            k: Number of folds for cross-validation. Defaults to 5.
+            num_bins: Number of bins for discretizing survival data. Defaults to 4.
+            case_id_column: Column name for case ID. Defaults to "Patient ID".
+            slide_id_column: Column name for slide ID. Defaults to "Sample ID".
+            label_column: Column name for survival time. Defaults to "Overall Survival (Months)".
+            censor_column: Column name for censorship status. Defaults to "Overall Survival Status".
+            wsi_feature_only: Whether to only return WSI features. Defaults to False.
+            cache: Whether to cache data
+        """
+        super().__init__()
         self.wsi_feature_dir = wsi_feature_dir
         self.rna_feature_csv = rna_feature_csv
         self.survival_csv = survival_csv
@@ -58,13 +83,16 @@ class TCGAWSIRNASurvivalDataset(Dataset):
             for i in range(self.num_classes)  # type: ignore[call-overload]
         ]
 
-        self.train_feature_ids = list()
-        self.val_feature_ids = list()
-        self.used_feature_ids = list()
-        self.update_fold_nb(0)
+        if self.splits is not None:
+            self.train_feature_ids: List[str] = []
+            self.val_feature_ids: List[str] = []
+            self.used_feature_ids: List[str] = []
+            self.update_fold_nb(0)
+        else:
+            self.used_feature_ids = [f.split(".")[0] for f in self.wsi_feature_files]
         self.train()
 
-    def _filter_data(self):
+    def _filter_data(self) -> None:
         # Drop duplicated rna features
         self.rna_feature_df = self.rna_feature_df.loc[
             ~self.rna_feature_df.index.duplicated(keep="first")
@@ -136,7 +164,7 @@ class TCGAWSIRNASurvivalDataset(Dataset):
                 f"Survival data for {filtered_survival_ids} slides are missing"
             )
 
-    def _gen_disc_label(self):
+    def _gen_disc_label(self) -> None:
         patients_df = self.survival_data.copy()
         event_df = self.survival_data[
             self.survival_data[self.censor_column] == "1:DECEASED"
@@ -193,13 +221,17 @@ class TCGAWSIRNASurvivalDataset(Dataset):
             lambda row: label_dict[(row["disc_label"], row["censorship"])], axis=1
         )
 
-        self.num_classes = len(label_dict)
+        self.num_classes = len(label_dict)  # type: ignore[assignment]
 
-    def update_fold_nb(self, fold_nb):
+    def update_fold_nb(self, fold_nb: int) -> "TCGAWSIRNASurvivalDataset":
+        """Update fold number for cross-validation
+        args:
+            fold_nb: Fold number
+        """
         self.fold_nb = fold_nb
 
         fold_csv = pd.read_csv(
-            os.path.join(self.splits, f"splits_{fold_nb}.csv"),
+            os.path.join(self.splits, f"splits_{fold_nb}.csv"),  # type: ignore[arg-type]
             header=0,
             index_col=0,
             sep=",",
@@ -219,21 +251,21 @@ class TCGAWSIRNASurvivalDataset(Dataset):
 
         return self
 
-    def train(self):
+    def train(self) -> "TCGAWSIRNASurvivalDataset":
         self.used_feature_ids = self.train_feature_ids
         if self.cache:
             self._cache_data()
 
         return self
 
-    def val(self):
+    def val(self) -> "TCGAWSIRNASurvivalDataset":
         self.used_feature_ids = self.val_feature_ids
         if self.cache:
             self._cache_data()
 
         return self
 
-    def _cache_data(self):
+    def _cache_data(self) -> None:
         self.used_feature_data = {}
         for slide in self.used_feature_ids:
             self.used_feature_data[slide] = torch.load(
@@ -241,13 +273,16 @@ class TCGAWSIRNASurvivalDataset(Dataset):
             )
 
     # For class balanced sampler protol
-    def get_label(self, idx):
+    def get_label(self, idx: int) -> int:
         return int(self.survival_data["label"][idx])
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.used_feature_ids)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> Union[
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
+    ]:
         slide = self.used_feature_ids[idx]
 
         if self.cache:

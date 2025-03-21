@@ -134,14 +134,14 @@ def main():
                                 == idx[:15]
                             ]["disc_label"].iloc[0]
                         )
-                        train_feature_ids_by_label[label].append(idx)
+                        train_feature_ids_by_label[label].append(idx)  # type: ignore[arg-type]
                 elif task == "subtyping":
                     train_feature_ids_by_label = {
                         label: [] for label in dataset.class_label.values()  # type: ignore[attr-defined]
                     }
                     for idx in dataset.train_feature_ids:
                         label = dataset.class_dict[idx]  # type: ignore[attr-defined]
-                        train_feature_ids_by_label[label].append(idx)
+                        train_feature_ids_by_label[label].append(idx)  # type: ignore[arg-type]
                 else:
                     raise ValueError(f"Invalid task: {task}")
 
@@ -152,7 +152,7 @@ def main():
                         support_set_cur_label = random.choices(
                             train_feature_ids_by_label[label], k=shot
                         )
-                        for idx in support_set_cur_label:
+                        for idx in support_set_cur_label:  # type: ignore[assignment]
                             if task == "survival":
                                 wsi_feature = torch.load(
                                     os.path.join(dataset.wsi_feature_dir, f"{idx}.pt")

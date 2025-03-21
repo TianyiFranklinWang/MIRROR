@@ -1,5 +1,13 @@
+"""TCGA Dataset for WSI-RNA Pretraining
+Copyright (c) 2025, Tianyi Wang @ The University of Sydney
+All rights reserved.
+
+Licensed under the GNU General Public License v3.0, see LICENSE for details
+"""
+
 import logging
 import os
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -13,13 +21,24 @@ _logger = logging.getLogger(__name__)
 class TCGAWSIRNAPretrainDataset(Dataset):
     def __init__(
         self,
-        wsi_feature_dir,
-        rna_feature_csv,
-        num_wsi_feature_tokens,
-        splits=None,
-        k=5,
-        cache=False,
-    ):
+        wsi_feature_dir: str,
+        rna_feature_csv: str,
+        num_wsi_feature_tokens: int,
+        splits: Optional[str] = None,
+        k: int = 5,
+        cache: bool = False,
+    ) -> None:
+        """
+        Args:
+            wsi_feature_dir: Directory containing WSI features
+            rna_feature_csv: Path to CSV containing RNA features
+            num_wsi_feature_tokens: Number of WSI patch features to sample
+            splits: Path to CSV containing train/val splits. Defaults to None.
+            k: Number of folds for cross-validation. Defaults to 5.
+            cache: Whether to cache data
+        """
+        super().__init__()
+
         self.wsi_feature_dir = wsi_feature_dir
         self.rna_feature_csv = rna_feature_csv
         self.num_wsi_feature_tokens = num_wsi_feature_tokens
@@ -35,15 +54,15 @@ class TCGAWSIRNAPretrainDataset(Dataset):
         self._filter_data()
 
         if self.splits is not None:
-            self.train_feature_ids = []
-            self.val_feature_ids = []
-            self.used_feature_ids = []
+            self.train_feature_ids: List[str] = []
+            self.val_feature_ids: List[str] = []
+            self.used_feature_ids: List[str] = []
             self.update_fold_nb(0)
         else:
             self.used_feature_ids = [f.split(".")[0] for f in self.wsi_feature_files]
         self.train()
 
-    def _filter_data(self):
+    def _filter_data(self) -> None:
         # Drop duplicated rna features
         self.rna_feature_df = self.rna_feature_df.loc[
             ~self.rna_feature_df.index.duplicated(keep="first")
@@ -74,11 +93,15 @@ class TCGAWSIRNAPretrainDataset(Dataset):
                 f"RNA features for {filtered_rna_feature_ids} slides are missing"
             )
 
-    def update_fold_nb(self, fold_nb):
+    def update_fold_nb(self, fold_nb: int) -> "TCGAWSIRNAPretrainDataset":
+        """Update fold number for cross-validation
+        args:
+            fold_nb: Fold number
+        """
         self.fold_nb = fold_nb
 
         fold_csv = pd.read_csv(
-            os.path.join(self.splits, f"splits_{fold_nb}.csv"),
+            os.path.join(self.splits, f"splits_{fold_nb}.csv"),  # type: ignore[arg-type]
             header=0,
             index_col=0,
             sep=",",
@@ -98,7 +121,7 @@ class TCGAWSIRNAPretrainDataset(Dataset):
 
         return self
 
-    def train(self):
+    def train(self) -> "TCGAWSIRNAPretrainDataset":
         if self.splits is not None:
             self.used_feature_ids = self.train_feature_ids
         if self.cache:
@@ -106,7 +129,7 @@ class TCGAWSIRNAPretrainDataset(Dataset):
 
         return self
 
-    def val(self):
+    def val(self) -> "TCGAWSIRNAPretrainDataset":
         if self.splits is not None:
             self.used_feature_ids = self.val_feature_ids
         if self.cache:
@@ -114,17 +137,17 @@ class TCGAWSIRNAPretrainDataset(Dataset):
 
         return self
 
-    def _cache_data(self):
+    def _cache_data(self) -> None:
         self.used_feature_data = {}
         for slide in self.used_feature_ids:
             self.used_feature_data[slide] = torch.load(
                 os.path.join(self.wsi_feature_dir, f"{slide}.pt")
             )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.used_feature_ids)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         slide = self.used_feature_ids[idx]
 
         if self.cache:
