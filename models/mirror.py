@@ -20,7 +20,7 @@ Licensed under the GNU General Public License v3.0, see LICENSE for details
 import logging
 import math
 from functools import partial
-from typing import Callable, Final, Literal, Optional, Type
+from typing import Callable, Final, Literal, Optional, Tuple, Type
 
 import numpy as np
 import torch
@@ -179,6 +179,32 @@ class TransFormer(nn.Module):
         block_fn: Type[nn.Module] = Block,
         mlp_layer: Type[nn.Module] = Mlp,
     ) -> None:
+        """TransFormer model for transcriptomics data.
+        Args:
+            input_dim: Number of input features.
+            embed_dim: Number of features embedding dimension.
+            depth: Depth of transformer.
+            num_heads: Number of attention heads.
+            mlp_ratio: Ratio of mlp hidden dim to embedding dim.
+            qkv_bias: Enable bias for qkv projections if True.
+            qk_norm: Enable norm for qk if True.
+            init_values: Layer-scale init values (layer-scale enabled if not None).
+            gene_embed: Use gene embedding.
+            pre_norm: Enable norm after embeddings, before transformer blocks.
+            final_norm: Enable norm after transformer blocks, before head.
+            embed_drop_rate: Dropout rate after embedding.
+            pos_drop_rate: Position embedding dropout rate.
+            proj_drop_rate: Dropout rate after projection.
+            attn_drop_rate: Attention dropout rate.
+            drop_path_rate: Stochastic depth rate.
+            weight_init: Weight initialization scheme.
+            fix_init: Apply weight initialization fix (scaling w/ layer index).
+            embed_layer: Patch embedding layer.
+            norm_layer: Normalization layer.
+            act_layer: MLP activation layer.
+            block_fn: Transformer block layer.
+            mlp_layer: MLP layer.
+        """
         super().__init__()
         assert gene_embed in ("", "none", "learn")
         norm_layer = get_norm_layer(norm_layer) or partial(nn.LayerNorm, eps=1e-6)
@@ -267,10 +293,9 @@ class TransFormer(nn.Module):
 #  TransMIL for Histopathology Data
 # ===========================================
 class TransLayer(nn.Module):
-
-    def __init__(self, norm_layer=nn.LayerNorm, dim=512):
+    def __init__(self, norm_layer: LayerType = nn.LayerNorm, dim: int = 512) -> None:
         super().__init__()
-        self.norm = norm_layer(dim)
+        self.norm = norm_layer(dim)  # type: ignore[operator]
         self.attn = NystromAttention(
             dim=dim,
             dim_head=dim // 8,
@@ -290,7 +315,7 @@ class TransLayer(nn.Module):
 
 
 class PPEG(nn.Module):
-    def __init__(self, dim=512):
+    def __init__(self, dim: int = 512) -> None:
         super().__init__()
         self.proj = nn.Conv2d(dim, dim, 7, 1, 7 // 2, groups=dim)
         self.proj1 = nn.Conv2d(dim, dim, 5, 1, 5 // 2, groups=dim)
@@ -307,7 +332,12 @@ class PPEG(nn.Module):
 
 
 class FeatureTransMIL(nn.Module):
-    def __init__(self, input_dim=1024, embed_dim=512):
+    def __init__(self, input_dim: int = 1024, embed_dim: int = 512) -> None:
+        """TransMIL model for histopathology data.
+        Args:
+            input_dim: Number of input features.
+            embed_dim: Number of features embedding dimension.
+        """
         super().__init__()
         self.input_dim = input_dim
         self.embed_dim = embed_dim
@@ -380,7 +410,34 @@ class TransFormerHybrid(TransFormer):
         block_fn: Type[nn.Module] = Block,
         mlp_layer: Type[nn.Module] = Mlp,
         retention_decoder_depth: int = 1,
-    ):
+    ) -> None:
+        """Pre-training TransFormer model for transcriptomics data.
+        Args:
+            input_dim: Number of input features.
+            embed_dim: Number of features embedding dimension.
+            depth: Depth of transformer.
+            num_heads: Number of attention heads.
+            mlp_ratio: Ratio of mlp hidden dim to embedding dim.
+            qkv_bias: Enable bias for qkv projections if True.
+            qk_norm: Enable norm for qk if True.
+            init_values: Layer-scale init values (layer-scale enabled if not None).
+            gene_embed: Use gene embedding.
+            pre_norm: Enable norm after embeddings, before transformer blocks.
+            final_norm: Enable norm after transformer blocks, before head.
+            embed_drop_rate: Dropout rate after embedding.
+            pos_drop_rate: Position embedding dropout rate.
+            proj_drop_rate: Dropout rate after projection.
+            attn_drop_rate: Attention dropout rate.
+            drop_path_rate: Stochastic depth rate.
+            weight_init: Weight initialization scheme.
+            fix_init: Apply weight initialization fix (scaling w/ layer index).
+            embed_layer: Patch embedding layer.
+            norm_layer: Normalization layer.
+            act_layer: MLP activation layer.
+            block_fn: Transformer block layer.
+            mlp_layer: MLP layer.
+            retention_decoder_depth: Depth of retention decoder.
+        """
         super().__init__(
             input_dim=input_dim,
             embed_dim=embed_dim,
@@ -439,7 +496,7 @@ class TransFormerHybrid(TransFormer):
 
         self.init_weights_()
 
-    def init_weights_(self):
+    def init_weights_(self) -> None:
         torch.nn.init.normal_(self.mask_token, std=0.02)
         trunc_normal_(self.retention_gene_embed, std=0.02)
 
@@ -450,7 +507,9 @@ class TransFormerHybrid(TransFormer):
             rescale(layer.attn.proj.weight.data, layer_id + 1)
             rescale(layer.mlp.fc2.weight.data, layer_id + 1)
 
-    def random_masking(self, x, mask_ratio):
+    def random_masking(
+        self, x: torch.Tensor, mask_ratio: float
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         B, N = x.shape  # noqa: N806
         len_keep = int(N * (1 - mask_ratio))
 
@@ -473,16 +532,18 @@ class TransFormerHybrid(TransFormer):
 
         return x_masked, mask
 
-    def forward_encoder(self, x):
-        return super().forward(x)
+    def forward_encoder(self, x: torch.Tensor) -> torch.Tensor:
+        return super().forward(x)  # type: ignore[no-any-return]
 
-    def forward_alignment_head(self, x):
+    def forward_alignment_head(self, x: torch.Tensor) -> torch.Tensor:
         eps = 1e-6 if x.dtype == torch.float16 else 1e-12
         x = nn.functional.normalize(x, dim=-1, p=2, eps=eps)
         alignment_x = self.alignment_head(x)
-        return alignment_x
+        return alignment_x  # type: ignore[no-any-return]
 
-    def forward_retention_head(self, x, mask_ratio):
+    def forward_retention_head(
+        self, x: torch.Tensor, mask_ratio: float
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         retention_x = self.retention_embed(x)
         retention_x, mask = self.random_masking(retention_x, mask_ratio)
         retention_x = retention_x + self.retention_gene_embed
@@ -492,12 +553,16 @@ class TransFormerHybrid(TransFormer):
         retention_x = self.retention_head(retention_x)
         return retention_x, mask
 
-    def forward_decoders(self, x, mask_ratio):
+    def forward_decoders(
+        self, x: torch.Tensor, mask_ratio: float
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         alignment_x = self.forward_alignment_head(x)
         retention_x, mask = self.forward_retention_head(x, mask_ratio)
         return alignment_x, retention_x, mask
 
-    def forward(self, x, mask_ratio=0.75):
+    def forward(
+        self, x: torch.Tensor, mask_ratio: float = 0.75
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         x = self.forward_encoder(x)
         alignment_x, retention_x, mask = self.forward_decoders(x, mask_ratio)
         retention_target_x = x
@@ -510,11 +575,18 @@ class TransFormerHybrid(TransFormer):
 class FeatureTransMILHybrid(FeatureTransMIL):
     def __init__(
         self,
-        input_dim=1024,
-        embed_dim=512,
-        num_tokens=2048,
-        retention_decoder_depth=1,
-    ):
+        input_dim: int = 1024,
+        embed_dim: int = 512,
+        num_tokens: int = 2048,
+        retention_decoder_depth: int = 1,
+    ) -> None:
+        """Pre-training TransMIL model for histopathology data.
+        Args:
+            input_dim: Number of input features.
+            embed_dim: Number of features embedding dimension.
+            num_tokens: Number of tokens.
+            retention_decoder_depth: Depth of retention decoder.
+        """
         super().__init__(input_dim, embed_dim)
 
         self.num_tokens = num_tokens
@@ -534,13 +606,13 @@ class FeatureTransMILHybrid(FeatureTransMIL):
 
         self.init_weights()
 
-    def init_weights(self):
+    def init_weights(self) -> None:
         torch.nn.init.normal_(self.mask_token, std=0.02)
         torch.nn.init.normal_(self.cls_token, std=0.02)
         trunc_normal_(self.retention_gene_embed, std=0.02)
         self.apply(self._init_weights)
 
-    def _init_weights(self, m):
+    def _init_weights(self, m: nn.Module) -> None:
         if isinstance(m, nn.Linear):
             torch.nn.init.xavier_uniform_(m.weight)
             if isinstance(m, nn.Linear) and m.bias is not None:
@@ -549,7 +621,9 @@ class FeatureTransMILHybrid(FeatureTransMIL):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
 
-    def random_masking(self, h, mask_ratio):
+    def random_masking(
+        self, h: torch.Tensor, mask_ratio: float
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         B, N, C = h.shape  # noqa: N806
         len_keep = int(N * (1 - mask_ratio))
 
@@ -574,7 +648,7 @@ class FeatureTransMILHybrid(FeatureTransMIL):
 
         return h_masked, mask
 
-    def forward_encoder(self, h):
+    def forward_encoder(self, h: torch.Tensor) -> torch.Tensor:
         h = h.float()  # [B, n, 1024]
 
         h = self._fc1(h)  # [B, n, 512]
@@ -604,13 +678,15 @@ class FeatureTransMILHybrid(FeatureTransMIL):
 
         return h[:, : h.shape[1] - add_length, :]
 
-    def forward_alignment_head(self, h):
+    def forward_alignment_head(self, h: torch.Tensor) -> torch.Tensor:
         eps = 1e-6 if h.dtype == torch.float16 else 1e-12
         h = nn.functional.normalize(h, dim=-1, p=2, eps=eps)
         alignment_h = self.alignment_head(h[:, 0, :])
-        return alignment_h
+        return alignment_h  # type: ignore[no-any-return]
 
-    def forward_retention_head(self, h, mask_ratio):
+    def forward_retention_head(
+        self, h: torch.Tensor, mask_ratio: float
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         retention_h = self.retention_embed(h)
         retention_h_, mask = self.random_masking(retention_h[:, 1:, :], mask_ratio)
         retention_h = torch.cat([retention_h[:, :1, :], retention_h_], dim=1)
@@ -622,12 +698,16 @@ class FeatureTransMILHybrid(FeatureTransMIL):
         retention_h = retention_h[:, 1:, :]
         return retention_h, mask
 
-    def forward_decoders(self, h, mask_ratio):
+    def forward_decoders(
+        self, h: torch.Tensor, mask_ratio: float
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         alignment_h = self.forward_alignment_head(h)
         retention_h, mask = self.forward_retention_head(h, mask_ratio)
         return alignment_h, retention_h, mask
 
-    def forward(self, h, mask_ratio=0.75):
+    def forward(
+        self, h: torch.Tensor, mask_ratio: float = 0.75
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         h = self.forward_encoder(h)
         alignment_h, retention_h, mask = self.forward_decoders(h, mask_ratio)
         retention_target_h = h[:, 1:, :]
@@ -640,29 +720,54 @@ class FeatureTransMILHybrid(FeatureTransMIL):
 class MIRROR(nn.Module):
     def __init__(
         self,
-        wsi_embed_dim,
-        rna_embed_dim,
-        embed_dim,
-        wsi_num_tokens=2048,
-        wsi_retention_decoder_depth=1,
-        rna_encoder_depth=2,
-        rna_gene_embed="learn",
-        rna_mlp_ratio=2.572,
-        rna_pos_drop_rate=0.0,
-        rna_proj_drop_rate=0.1,
-        rna_attn_drop_rate=0.0,
-        rna_drop_path_rate=0.0,
-        rna_norm_layer=None,
-        rna_act_layer=None,
-        rna_retention_decoder_depth=1,
-        init_logit_scale=np.log(1 / 0.07),  # noqa: B008
-        style_mlp_hidden_dim=512,
-        style_mlp_out_dim=256,
-        style_norm_layer=None,
-        style_act_layer=None,
-        style_latent_dim=128,
-        num_prototypes=3000,
-    ):
+        wsi_embed_dim: int,
+        rna_embed_dim: int,
+        embed_dim: int,
+        wsi_num_tokens: int = 2048,
+        wsi_retention_decoder_depth: int = 1,
+        rna_encoder_depth: int = 2,
+        rna_gene_embed: str = "learn",
+        rna_mlp_ratio: float = 2.572,
+        rna_pos_drop_rate: float = 0.0,
+        rna_proj_drop_rate: float = 0.1,
+        rna_attn_drop_rate: float = 0.0,
+        rna_drop_path_rate: float = 0.0,
+        rna_norm_layer: Optional[LayerType] = None,
+        rna_act_layer: Optional[LayerType] = None,
+        rna_retention_decoder_depth: int = 1,
+        init_logit_scale: float = np.log(1 / 0.07),
+        style_mlp_hidden_dim: int = 512,
+        style_mlp_out_dim: int = 256,
+        style_norm_layer: Optional[LayerType] = None,
+        style_act_layer: Optional[LayerType] = None,
+        style_latent_dim: int = 128,
+        num_prototypes: int = 3000,
+    ) -> None:
+        """MIRROR model for pre-training.
+        Args:
+            wsi_embed_dim: Number of WSI embedding features.
+            rna_embed_dim: Number of RNA embedding features.
+            embed_dim: Number of features embedding dimension.
+            wsi_num_tokens: Number of WSI tokens.
+            wsi_retention_decoder_depth: Depth of WSI retention decoder.
+            rna_encoder_depth: Depth of RNA encoder.
+            rna_gene_embed: Use gene embedding.
+            rna_mlp_ratio: Ratio of mlp hidden dim to embedding dim.
+            rna_pos_drop_rate: Position embedding dropout rate.
+            rna_proj_drop_rate: Dropout rate after projection.
+            rna_attn_drop_rate: Attention dropout rate.
+            rna_drop_path_rate: Stochastic depth rate.
+            rna_norm_layer: Normalization layer.
+            rna_act_layer: MLP activation layer.
+            rna_retention_decoder_depth: Depth of RNA retention decoder.
+            init_logit_scale: Initial logit scale.
+            style_mlp_hidden_dim: Style MLP hidden dim.
+            style_mlp_out_dim: Style MLP out dim.
+            style_norm_layer: Style normalization layer.
+            style_act_layer: Style activation layer.
+            style_latent_dim: Style latent dim.
+            num_prototypes: Number of prototypes.
+        """
         super().__init__()
 
         self.wsi_embed_dim = wsi_embed_dim
@@ -705,7 +810,7 @@ class MIRROR(nn.Module):
             retention_decoder_depth=self.rna_retention_decoder_depth,
         )
 
-        style_act_layer = get_act_layer(style_act_layer) or nn.GELU
+        style_act_layer = get_act_layer(style_act_layer) or nn.GELU  # type: ignore[arg-type]
 
         self.style_encoder_mlp = Mlp(
             in_features=embed_dim,
@@ -722,12 +827,21 @@ class MIRROR(nn.Module):
         self.prototypes = nn.Linear(embed_dim, num_prototypes, bias=False)
         nn.init.orthogonal_(self.prototypes.weight)
 
-    def reparameterize(self, mu, logstd):
+    def reparameterize(self, mu: torch.Tensor, logstd: torch.Tensor) -> torch.Tensor:
         std = torch.exp(0.5 * logstd)
         dist = Normal(mu, std)
         return dist.rsample()
 
-    def forward_style_clustering(self, wsi_emb, rna_emb):
+    def forward_style_clustering(
+        self, wsi_emb: torch.Tensor, rna_emb: torch.Tensor
+    ) -> Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]:
         wsi_emb = self.style_encoder_mlp(wsi_emb)
         wsi_mu = self.style_mu(wsi_emb)
         wsi_logstd = self.style_logstd(wsi_emb)
@@ -743,7 +857,29 @@ class MIRROR(nn.Module):
         rna_score = self.prototypes(rna_z)
         return wsi_score, wsi_mu, wsi_logstd, rna_score, rna_mu, rna_logstd
 
-    def forward(self, wsi_emb, rna_emb, wsi_mask_ratio=0.75, rna_mask_ratio=0.75):
+    def forward(
+        self,
+        wsi_emb: torch.Tensor,
+        rna_emb: torch.Tensor,
+        wsi_mask_ratio: float = 0.75,
+        rna_mask_ratio: float = 0.75,
+    ) -> Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]:
         wsi_emb = self.wsi_encoder.forward_encoder(wsi_emb)
         wsi_alignment_emb, wsi_retention_emb, wsi_mask = (
             self.wsi_encoder.forward_decoders(wsi_emb, mask_ratio=wsi_mask_ratio)
@@ -785,21 +921,38 @@ class MIRROR(nn.Module):
 class MIRRORClassifier(nn.Module):
     def __init__(
         self,
-        wsi_embed_dim,
-        rna_embed_dim,
-        embed_dim,
-        num_classes,
-        rna_encoder_depth=2,
-        rna_gene_embed="learn",
-        rna_mlp_ratio=2.572,
-        rna_pos_drop_rate=0.0,
-        rna_proj_drop_rate=0.1,
-        rna_attn_drop_rate=0.0,
-        rna_drop_path_rate=0.0,
-        rna_norm_layer=None,
-        rna_act_layer=None,
-        fusion="concat",
-    ):
+        wsi_embed_dim: int,
+        rna_embed_dim: int,
+        embed_dim: int,
+        num_classes: int,
+        rna_encoder_depth: int = 2,
+        rna_gene_embed: str = "learn",
+        rna_mlp_ratio: float = 2.572,
+        rna_pos_drop_rate: float = 0.0,
+        rna_proj_drop_rate: float = 0.1,
+        rna_attn_drop_rate: float = 0.0,
+        rna_drop_path_rate: float = 0.0,
+        rna_norm_layer: Optional[LayerType] = None,
+        rna_act_layer: Optional[LayerType] = None,
+        fusion: str = "concat",
+    ) -> None:
+        """MIRROR model for downstream task.
+        Args:
+            wsi_embed_dim: Number of WSI embedding features.
+            rna_embed_dim: Number of RNA embedding features.
+            embed_dim: Number of features embedding dimension.
+            num_classes: Number of classes.
+            rna_encoder_depth: Depth of RNA encoder.
+            rna_gene_embed: Use gene embedding.
+            rna_mlp_ratio: Ratio of mlp hidden dim to embedding dim.
+            rna_pos_drop_rate: Position embedding dropout rate.
+            rna_proj_drop_rate: Dropout rate after projection.
+            rna_attn_drop_rate: Attention dropout rate.
+            rna_drop_path_rate: Stochastic depth rate.
+            rna_norm_layer: Normalization layer.
+            rna_act_layer: MLP activation layer.
+            fusion: Fusion method.
+        """
         super().__init__()
 
         self.wsi_embed_dim = wsi_embed_dim
@@ -842,7 +995,9 @@ class MIRRORClassifier(nn.Module):
         elif self.fusion == "concat":
             self.head = nn.Linear(self.embed_dim * 2, self.num_classes)
 
-    def forward(self, wsi_emb, rna_emb=None):
+    def forward(
+        self, wsi_emb: torch.Tensor, rna_emb: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         wsi_emb = self.wsi_encoder(wsi_emb)
         if rna_emb is not None:
             rna_emb = self.rna_encoder(rna_emb)
@@ -857,7 +1012,7 @@ class MIRRORClassifier(nn.Module):
             pred = self.head(fused_emb)
         else:
             pred = self.head(wsi_emb)
-        return pred
+        return pred  # type: ignore[no-any-return]
 
 
 @register_model
