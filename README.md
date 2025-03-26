@@ -73,7 +73,7 @@ python ./tools/feature_generation/gen_patch_feature.py
 
 #### Transcriptomics Data
 
-We provide the processed transcriptomics data on [Kaggle](https://www.kaggle.com/datasets/wangtyi/mirror-pruned-tcga-rnaseq-data) and [Zenodo](https://zenodo.org/records/15043064) for TCGA-BRCA, TCGA-NSCLC, TCGA-COADREAD, and TCGA-RCC.
+We provide the processed transcriptomics data on [Kaggle](https://www.kaggle.com/datasets/wangtyi/mirror-pruned-tcga-rnaseq-data), [Hugging Face](https://huggingface.co/datasets/Franklin2001/MIRROR_Pruned_TCGA_RNASeq_Data) and [Zenodo](https://zenodo.org/records/15043064) for TCGA-BRCA, TCGA-NSCLC, TCGA-COADREAD, and TCGA-RCC.
 
 For custom data preparation:
 - Download the transcriptomics data `tcga_RSEM_isoform_fpkm.gz` and mapping table `probeMap_gencode.v23.annotation.transcript.probemap` from [Xena](https://xenabrowser.net/datapages/?dataset=tcga_RSEM_isoform_fpkm&host=https%3A%2F%2Ftoil.xenahubs.net).
