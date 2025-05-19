@@ -14,4 +14,4 @@ openslide-bin~=4.0.0.8
 openslide-python~=1.4.2
 scikit-image~=0.25.2
 transformers~=4.51.3
-albumentations~=2.0.6
+albumentations~=2.0.7
