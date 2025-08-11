@@ -13,5 +13,5 @@ opencv-contrib-python~=4.11.0.86
 openslide-bin~=4.0.0.8
 openslide-python~=1.4.2
 scikit-image~=0.25.2
-transformers~=4.51.3
+transformers~=4.55.0
 albumentations~=2.0.8
