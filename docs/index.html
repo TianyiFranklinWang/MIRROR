@@ -103,6 +103,17 @@
                       </a>
                     </span>
 
+                            <!-- Dataset link -->
+                            <span class="link-block">
+                    <a href="https://zenodo.org/records/15043064" target="_blank"
+                       class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                        <i class="fas fa-database"></i>
+                    </span>
+                    <span>Data</span>
+                  </a>
+                </span>
+
                             <!-- Github link -->
                             <span class="link-block">
                     <a href="https://github.com/TianyiFranklinWang/MIRROR" target="_blank"
@@ -126,6 +137,12 @@
               </span>
                         </div>
                     </div>
+                    <p align="center">
+                      <span style="font-size: 1.15em; font-weight: 600;">
+                        📢 We are pleased to announce that a revised version of our manuscript is now available on
+                        <a href="https://arxiv.org/abs/2503.00374">ArXiv</a> <b>(v3)</b>.
+                      </span>
+                    </p>
                 </div>
             </div>
         </div>
@@ -137,8 +154,9 @@
     <div class="container is-max-desktop">
         <div class="columns is-centered has-text-centered">
             <div class="column is-four-fifths">
-                <h2 class="title is-3">Abstract</h2>
+                <h2 class="title is-3">Overview</h2>
                 <div class="content has-text-justified">
+                    <img src="static/images/mirror.png" alt="Architecture Image"/>
                     <p>
                         Histopathology and transcriptomics are fundamental modalities in cancer diagnostics,
                         encapsulating the morphological and molecular characteristics of the disease. Multi-modal
@@ -170,31 +188,7 @@
 </section>
 <!-- End paper abstract -->
 
-
 <section class="hero is-small">
-    <div class="hero-body">
-        <div class="container is-max-desktop">
-            <div class="columns is-centered has-text-centered">
-                <div class="column is-four-fifths">
-                    <h2 class="title is-3">Introduction</h2>
-                    <div class="content has-text-justified">
-                        <img src="static/images/intro.png" alt="Introduction Image"/>
-                        <p>
-                            Unlike conventional methods that primarily emphasize capturing modality-shared information
-                            while paying limited attention to modality-specific intrinsic structures and
-                            indiscriminately learning both disease-relevant and irrelevant data with high redundancy,
-                            MIRROR is specifically designed to balance modality alignment and retention.
-                            By selectively preserving only disease-relevant features, it effectively mitigates
-                            redundancy, thereby enhancing the model’s efficiency and representational capability.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="hero is-light">
     <div class="hero-body">
         <div class="container is-max-desktop">
             <div class="columns is-centered has-text-centered">
@@ -228,81 +222,6 @@
     </div>
 </section>
 
-<section class="hero is-small">
-    <div class="hero-body">
-        <div class="container is-max-desktop">
-            <div class="columns is-centered has-text-centered">
-                <div class="column is-four-fifths">
-                    <h2 class="title is-3">Method</h2>
-                    <div class="content has-text-justified">
-                        <img src="static/images/mirror.png" alt="Architecture Image"/>
-                        <p>
-                        <p>Whole Slide Images (WSIs) are first partitioned into patches, which are processed through a
-                            pre-trained patch encoder to extract patch-level feature representations. These features are
-                            subsequently aggregated by the slide encoder to encapsulate slide-level characteristics into
-                            a <i>[CLS]</i> token while projecting patch embeddings into the shared pathological latent
-                            space.</p>
-
-                        <p>Transcriptomics data are preprocessed using Recursive Feature Elimination (RFE) and manual
-                            selection to identify high disease-related genes. The refined transcriptomic features are
-                            then embedded into a compact representation and mapped into the shared latent space via an
-                            RNA encoder.</p>
-
-                        <p>An alignment module for each modality aligns representations across modalities, guided by the
-                            alignment loss (<code>L<sub>align</sub></code>). Meanwhile, modality-specific retention
-                            modules utilize perturbed inputs from both encoded patch and transcriptomics features to
-                            capture modality-specific intrinsic structures, contributing to the retention loss
-                            (<code>L<sub>retention</sub></code>).</p>
-
-                        <p>Finally, both slide and transcriptomics representations are processed through a style
-                            clustering module to learn and compare their pathological styles against learnable cluster
-                            centers. The clustering loss (<code>L<sub>cluster</sub></code>) is used to align consistent
-                            pathological styles within the cluster space.</p>
-
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-
-<!-- Image carousel -->
-<section class="hero is-small">
-    <div class="hero-body">
-        <div class="container">
-            <div class="columns is-centered has-text-centered">
-                <div class="column is-four-fifths">
-                    <h2 class="title is-3">Qualitative Analysis</h2>
-                </div>
-            </div>
-            <div id="results-carousel" class="carousel results-carousel">
-                <div class="item">
-                    <!-- Your image here -->
-                    <img src="static/images/wsi_attention_map.png" alt="Histopathology Attention Map"/>
-                    <h2 class="subtitle has-text-centered">
-                        Visualization of slide encoder attention weights on TCGA-BRCA, TCGA-NSCLC, TCGA-RCC and
-                        TCGA-COADREAD. Regions exhibiting higher attention scores predominantly correspond to malignant,
-                        tumor-bearing tissue, whereas areas with lower scores typically indicate normal regions.
-                    </h2>
-                </div>
-                <div class="item">
-                    <!-- Your image here -->
-                    <img src="static/images/umap_transcriptomics.png" alt="UMAP Visualization"/>
-                    <h2 class="subtitle has-text-centered">
-                        Visualization of histopathology and transcriptomics features encoded by MIRROR on the
-                        TCGA-NSCLC dataset, compared to those obtained using TANGLE. Pink dots represent samples from
-                        TCGA-LUSC, while blue dots represent samples from TCGA-LUAD. MIRROR clearly yields
-                        more distinct and well-aligned feature distributions.
-                    </h2>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-<!-- End image carousel -->
-
 
 <section class="hero is-light">
     <div class="hero-body">
@@ -331,14 +250,13 @@
 <section class="section" id="BibTeX">
     <div class="container is-max-desktop content">
         <h2 class="title">BibTeX</h2>
-        <pre><code>@misc{wang2025mirrormultimodalpathologicalselfsupervised,
- title={MIRROR: Multi-Modal Pathological Self-Supervised Representation Learning via Modality Alignment and Retention},
- author={Tianyi Wang and Jianan Fan and Dingxin Zhang and Dongnan Liu and Yong Xia and Heng Huang and Weidong Cai},
- year={2025},
- eprint={2503.00374},
- archivePrefix={arXiv},
- primaryClass={cs.CV},
- url={https://arxiv.org/abs/2503.00374},
+        <pre><code>@misc{wang2025mirror,
+    title={MIRROR: Multi-Modal Pathological Self-Supervised Representation Learning via Modality Alignment and Retention},
+    author={Tianyi Wang and Jianan Fan and Dingxin Zhang and Dongnan Liu and Yong Xia and Heng Huang and Weidong Cai},
+    year={2025},
+    eprint={2503.00374},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
 }</code></pre>
     </div>
 </section>

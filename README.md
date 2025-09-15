@@ -201,14 +201,13 @@ This project is released under the General Public License v3.0. Please see the [
 If you find our work useful, please cite it using the following BibTeX entry:
 
 ```bibtex
-@misc{wang2025mirrormultimodalpathologicalselfsupervised,
- title={MIRROR: Multi-Modal Pathological Self-Supervised Representation Learning via Modality Alignment and Retention}, 
- author={Tianyi Wang and Jianan Fan and Dingxin Zhang and Dongnan Liu and Yong Xia and Heng Huang and Weidong Cai},
- year={2025},
- eprint={2503.00374},
- archivePrefix={arXiv},
- primaryClass={cs.CV},
- url={https://arxiv.org/abs/2503.00374}, 
+@misc{wang2025mirror,
+    title={MIRROR: Multi-Modal Pathological Self-Supervised Representation Learning via Modality Alignment and Retention},
+    author={Tianyi Wang and Jianan Fan and Dingxin Zhang and Dongnan Liu and Yong Xia and Heng Huang and Weidong Cai},
+    year={2025},
+    eprint={2503.00374},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
 }
 ```
 
