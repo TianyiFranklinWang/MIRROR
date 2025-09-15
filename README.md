@@ -7,6 +7,17 @@
 
 **[[Preprint on ArXiv]](https://arxiv.org/abs/2503.00374)**
 
+---
+
+<p align="center">
+  <span style="font-size: 1.15em; font-weight: 600;">
+    📢 We are pleased to announce that a revised version of our manuscript is now available on 
+    <a href="https://arxiv.org/abs/2503.00374">ArXiv</a> <b>(v3)</b>.
+  </span>
+</p>
+
+---
+
 > Please give us a :star2: if you find our work useful!
 
 ## Introduction
