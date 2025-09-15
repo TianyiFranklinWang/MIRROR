@@ -172,7 +172,7 @@ def main():
                             break
                     support_set.extend(support_set_cur_label)
 
-                support_set = [_[:12] for _ in support_set]
+                support_set = [_[:12] for _ in support_set]  # type: ignore[index]
                 query_set = [_[:12] for _ in dataset.val_feature_ids]
                 df = pd.DataFrame(
                     {"train": pd.Series(support_set), "val": pd.Series(query_set)}

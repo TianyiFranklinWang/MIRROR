@@ -91,11 +91,11 @@ def main():
     device = torch.device(config.device_type)
     model = None
     if config.model == "custom_resnet50":
-        from feature_models import custom_resnet50
+        from feature_models import custom_resnet50  # noqa: PLC0415
 
         model = custom_resnet50(pretrained=config.pretrained)
     elif config.model == "phikon":
-        from feature_models import Phikon
+        from feature_models import Phikon  # noqa: PLC0415
 
         model = Phikon()
     if model:
