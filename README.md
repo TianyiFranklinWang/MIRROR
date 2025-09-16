@@ -1,9 +1,10 @@
-<p align="center"><img width="50%" src="docs/images/usyd_logo.jpeg" /></p>
+<h1 align="center">
+  MIRROR: Multi-Modal Pathological Self-Supervised Representation Learning via Modality Alignment and Retention
+</h1>
 
-# MIRROR: Multi-Modal Pathological Self-Supervised Representation Learning via Modality Alignment and Retention
+**[Tianyi Wang](https://github.com/TianyiFranklinWang)<sup>1</sup>, [Jianan Fan](https://dblp.org/pid/248/7360.html)<sup>1</sup>, [Dingxin Zhang](https://scholar.google.com/citations?user=ckAbIuYAAAAJ)<sup>1</sup>, [Dongnan Liu](https://scholar.google.com/citations?user=JZzb8XUAAAAJ)<sup>1</sup>, [Yong Xia](https://scholar.google.com/citations?user=Usw1jeMAAAAJ)<sup>2</sup>, [Heng Huang](https://scholar.google.com/citations?user=4OqLaDwAAAAJ)<sup>3</sup>, and [Weidong Cai](https://weidong-tom-cai.github.io)<sup>1</sup>**
 
-
-**[Tianyi Wang](https://github.com/TianyiFranklinWang), [Jianan Fan](https://dblp.org/pid/248/7360.html), [Dingxin Zhang](https://scholar.google.com/citations?user=ckAbIuYAAAAJ), [Dongnan Liu](https://scholar.google.com/citations?user=JZzb8XUAAAAJ), [Yong Xia](https://scholar.google.com/citations?user=Usw1jeMAAAAJ), [Heng Huang](https://scholar.google.com/citations?user=4OqLaDwAAAAJ), and [Weidong Cai](https://weidong-tom-cai.github.io)**
+<sup>1</sup>The University of Sydney; <sup>2</sup>Northwestern Polytechnical University; <sup>3</sup>University of Maryland
 
 **[[Preprint on ArXiv]](https://arxiv.org/abs/2503.00374)**
 
