@@ -12,8 +12,7 @@
 
 <p align="center">
   <span style="font-size: 1.15em; font-weight: 600;">
-    📢 We are pleased to announce that a revised version of our manuscript is now available on 
-    <a href="https://arxiv.org/abs/2503.00374">ArXiv</a> <b>(v4)</b>.
+    🎉 We are thrilled to share that <b>MIRROR</b> has been officially <b>accepted for publication in IEEE Transactions on Medical Imaging (TMI)</b>.
   </span>
 </p>
 
