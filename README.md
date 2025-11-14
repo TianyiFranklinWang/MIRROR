@@ -4,21 +4,31 @@
 
 **[Tianyi Wang](https://github.com/TianyiFranklinWang)<sup>1</sup>, [Jianan Fan](https://dblp.org/pid/248/7360.html)<sup>1</sup>, [Dingxin Zhang](https://scholar.google.com/citations?user=ckAbIuYAAAAJ)<sup>1</sup>, [Dongnan Liu](https://scholar.google.com/citations?user=JZzb8XUAAAAJ)<sup>1</sup>, [Yong Xia](https://scholar.google.com/citations?user=Usw1jeMAAAAJ)<sup>2</sup>, [Heng Huang](https://scholar.google.com/citations?user=4OqLaDwAAAAJ)<sup>3</sup>, and [Weidong Cai](https://weidong-tom-cai.github.io)<sup>1</sup>**
 
-<sup>1</sup>The University of Sydney; <sup>2</sup>Northwestern Polytechnical University; <sup>3</sup>University of Maryland
-
-**[[Preprint on ArXiv]](https://arxiv.org/abs/2503.00374)**
-
----
+<sup>1</sup>The University of Sydney &nbsp;&nbsp;&nbsp;
+<sup>2</sup>Northwestern Polytechnical University &nbsp;&nbsp;&nbsp;
+<sup>3</sup>University of Maryland
 
 <p align="center">
-  <span style="font-size: 1.15em; font-weight: 600;">
-    🎉 We are thrilled to share that <b>MIRROR</b> has been officially <b>accepted for publication in IEEE Transactions on Medical Imaging (TMI)</b>.
-  </span>
+  <a href="https://ieeexplore.ieee.org/document/11245622">
+    <img src="https://img.shields.io/badge/IEEE%20TMI-Early%20Access-00457C?style=flat-square&logo=ieee&logoColor=white" alt="IEEE TMI Early Access">
+  </a>
+  <a href="https://arxiv.org/abs/2503.00374">
+    <img src="https://img.shields.io/badge/arXiv-2503.00374-B31B1B?style=flat-square&logo=arxiv&logoColor=white" alt="arXiv">
+  </a>
+  <a href="https://github.com/TianyiFranklinWang/MIRROR">
+    <img src="https://img.shields.io/badge/Code-GitHub-181717?style=flat-square&logo=github&logoColor=white" alt="Code">
+  </a>
 </p>
 
 ---
 
-> Please give us a :star2: if you find our work useful!
+<p align="center">
+  <em>🎉 MIRROR has been accepted for publication in <b>IEEE Transactions on Medical Imaging (TMI)</b>.</em>
+</p>
+
+---
+
+> **Please give us a :star2: if you find our work useful!**
 
 ## Introduction
 
