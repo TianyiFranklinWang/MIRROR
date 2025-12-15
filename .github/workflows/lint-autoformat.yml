@@ -57,7 +57,7 @@ jobs:
 
       # Cache pip dependencies to speed up installs
       - name: Cache pip dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt', 'requirements-lintrunner.txt') }}
